@@ -20,6 +20,7 @@ The exam took place at the AUC - Engineering Faculty Building. Candidates are no
 
 Overall, the ISC2 CC exam is a rigorous assessment of your cybersecurity knowledge and skills. Success requires not only preparation but also careful attention to detail during the exam.
 
-## The Ultimate Super Duper Notes 
+:::note
+ The Ultimate Super Duper Notes 
 [Click Here](https://www.notion.so/ISC2-CC-Exam-Notes-14f46f5c6df880619cf5c0aa4427fd92?pvs=21)
-
+:::

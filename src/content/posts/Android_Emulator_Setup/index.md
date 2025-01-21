@@ -36,7 +36,9 @@ It's the most comprehensive emulator available for penetration testing needs. It
 
 ## Steps
 
-### NOTE: If you already have Android Studio installed, please skip to the IMPORTANT PART
+:::important
+If you already have Android Studio installed, please skip to the IMPORTANT PART
+:::
 
 First, we need to install Android Studio → [LINK](https://developer.android.com/studio)
 
@@ -98,4 +100,6 @@ For convenience, you can save these commands for different APIs in a `.bat` file
 
 ![image.png](image%206.png)
 
+:::warning
 Happy APK Hacking
+:::
