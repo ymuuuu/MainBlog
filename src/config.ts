@@ -11,7 +11,7 @@ export const siteConfig: SiteConfig = {
   subtitle: 'by Mu;men',
   lang: 'en',         // 'en', 'zh_CN', 'zh_TW', 'ja', 'ko', 'es', 'th'
   themeColor: {
-    hue: 50,         // Default hue for the theme color, from 0 to 360. e.g. red: 0, teal: 200, cyan: 250, pink: 345
+    hue: 195,         // Default hue for the theme color, from 0 to 360. e.g. red: 0, teal: 200, cyan: 250, pink: 345
     fixed: true,     // Hide the theme color picker for visitors
   },
   banner: {
@@ -65,7 +65,7 @@ export const profileConfig: ProfileConfig = {
       icon: 'fa6-brands:twitter',       // Visit https://icones.js.org/ for icon codes
                                         // You will need to install the corresponding icon set if it's not already included
                                         // `pnpm add @iconify-json/<icon-set-name>`
-      url: 'https://twitter.com',
+      url: 'https://x.com/ymuuu_',
     },
     {
       name: 'Facebook',
@@ -80,13 +80,13 @@ export const profileConfig: ProfileConfig = {
     {
       name: 'Discord',
       icon: 'fa6-brands:discord',
-      url: 'https://x.com/ymuuu_',
+      url: 'https://discord.com/ymuuu_',
     },
   ],
 }
 
 export const licenseConfig: LicenseConfig = {
-  enable: true,
+  enable: false,
   name: 'CC BY-NC-SA 4.0',
   url: 'https://creativecommons.org/licenses/by-nc-sa/4.0/',
 }
