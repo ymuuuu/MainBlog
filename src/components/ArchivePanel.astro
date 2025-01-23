@@ -2,7 +2,7 @@
 import { UNCATEGORIZED } from '@constants/constants'
 import I18nKey from '../i18n/i18nKey'
 import { i18n } from '../i18n/translation'
-import { getSortedPosts } from '../utils/content-utils'
+import { getAllSortedPosts } from '../utils/content-utils' // Use getAllSortedPosts for archive
 import { getPostUrlBySlug } from '../utils/url-utils'
 
 interface Props {
@@ -12,7 +12,7 @@ interface Props {
 }
 const { keyword, tags, categories } = Astro.props
 
-let posts = await getSortedPosts()
+let posts = await getAllSortedPosts() // Fetch posts from both "posts" and "writeups" collections
 
 if (Array.isArray(tags) && tags.length > 0) {
   posts = posts.filter(
@@ -43,13 +43,13 @@ const groups: { year: number; posts: typeof posts }[] = (() => {
     {},
   )
 
-  // convert the object to an array
+  // Convert the object to an array
   const groupedPostsArray = Object.keys(groupedPosts).map(key => ({
     year: Number.parseInt(key),
     posts: groupedPosts[Number.parseInt(key)],
   }))
 
-  // sort years by latest first
+  // Sort years by latest first
   groupedPostsArray.sort((a, b) => b.year - a.year)
   return groupedPostsArray
 })()
@@ -82,11 +82,11 @@ function formatTag(tag: string[]) {
                        class="group btn-plain !block h-10 w-full rounded-lg hover:text-[initial]"
                     >
                         <div class="flex flex-row justify-start items-center h-full">
-                            <!-- date -->
+                            <!-- Date -->
                             <div class="w-[15%] md:w-[10%] transition text-sm text-right text-50">
                                 {formatDate(post.data.published)}
                             </div>
-                            <!-- dot and line -->
+                            <!-- Dot and line -->
                             <div class="w-[15%] md:w-[10%] relative dash-line h-full flex items-center">
                                 <div class="transition-all mx-auto w-1 h-1 rounded group-hover:h-5
                                 bg-[oklch(0.5_0.05_var(--hue))] group-hover:bg-[var(--primary)]
@@ -97,14 +97,14 @@ function formatTag(tag: string[]) {
                                 "
                                 ></div>
                             </div>
-                            <!-- post title -->
+                            <!-- Post title -->
                             <div class="w-[70%] md:max-w-[65%] md:w-[65%] text-left font-bold
                                 group-hover:translate-x-1 transition-all group-hover:text-[var(--primary)]
                                 text-75 pr-8 whitespace-nowrap overflow-ellipsis overflow-hidden"
                             >
                                     {post.data.title}
                             </div>
-                            <!-- tag list -->
+                            <!-- Tag list -->
                             <div class="hidden md:block md:w-[15%] text-left text-sm transition
                             whitespace-nowrap overflow-ellipsis overflow-hidden
                             text-30"
