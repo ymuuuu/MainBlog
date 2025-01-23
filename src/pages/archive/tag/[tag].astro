@@ -8,15 +8,17 @@ import { getSortedPosts } from '@utils/content-utils'
 export async function getStaticPaths() {
   const posts = await getSortedPosts()
 
-  // タグを集めるための Set の型を指定
+  // Collect all unique tags
   const allTags = posts.reduce<Set<string>>((acc, post) => {
-    // biome-ignore lint/complexity/noForEach: <explanation>
-    post.data.tags.forEach(tag => acc.add(tag))
+    if (post.data.tags) {
+      post.data.tags.forEach(tag => acc.add(tag))
+    }
     return acc
   }, new Set())
 
   const allTagsArray = Array.from(allTags)
 
+  // Generate paths for each tag
   return allTagsArray.map(tag => ({
     params: {
       tag: tag,
@@ -25,8 +27,21 @@ export async function getStaticPaths() {
 }
 
 const tag = Astro.params.tag as string
+let posts = await getSortedPosts()
+
+// Filter posts by the selected tag
+posts = posts.filter(post => post.data.tags && post.data.tags.includes(tag))
+
+// Handle case where no posts are found for the tag
+const noPostsFound = posts.length === 0
 ---
 
 <MainGridLayout title={i18n(I18nKey.archive)} description={i18n(I18nKey.archive)}>
-    <ArchivePanel tags={[tag]}></ArchivePanel>
+    {noPostsFound ? (
+        <div class="card-base px-8 py-6">
+            <p>No posts found for the tag: {tag}</p>
+        </div>
+    ) : (
+        <ArchivePanel tags={[tag]}></ArchivePanel>
+    )}
 </MainGridLayout>

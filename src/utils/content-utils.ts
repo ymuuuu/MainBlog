@@ -3,25 +3,30 @@ import type { BlogPostData } from '@/types/config'
 import I18nKey from '@i18n/i18nKey'
 import { i18n } from '@i18n/translation'
 
+/**
+ * Fetches and sorts entries from the "posts" collection by published date (newest first).
+ * Also sets `nextSlug`, `nextTitle`, `prevSlug`, and `prevTitle` for navigation.
+ */
 export async function getSortedPosts(): Promise<
-  { body: string, data: BlogPostData; slug: string }[]
+  { body: string; data: BlogPostData; slug: string }[]
 > {
-  const allBlogPosts = (await getCollection('posts', ({ data }) => {
+  const allPosts = (await getCollection('posts', ({ data }) => {
     return import.meta.env.PROD ? data.draft !== true : true
-  })) as unknown as { body: string, data: BlogPostData; slug: string }[]
+  })) as unknown as { body: string; data: BlogPostData; slug: string }[]
 
-  const sorted = allBlogPosts.sort(
-    (a: { data: BlogPostData }, b: { data: BlogPostData }) => {
-      const dateA = new Date(a.data.published)
-      const dateB = new Date(b.data.published)
-      return dateA > dateB ? -1 : 1
-    },
-  )
+  // Sort posts by published date (newest first)
+  const sorted = allPosts.sort((a, b) => {
+    const dateA = new Date(a.data.published)
+    const dateB = new Date(b.data.published)
+    return dateA > dateB ? -1 : 1
+  })
 
+  // Set next and previous slugs/titles for navigation
   for (let i = 1; i < sorted.length; i++) {
     sorted[i].data.nextSlug = sorted[i - 1].slug
     sorted[i].data.nextTitle = sorted[i - 1].data.title
   }
+
   for (let i = 0; i < sorted.length - 1; i++) {
     sorted[i].data.prevSlug = sorted[i + 1].slug
     sorted[i].data.prevTitle = sorted[i + 1].data.title
@@ -30,25 +35,55 @@ export async function getSortedPosts(): Promise<
   return sorted
 }
 
-export type Tag = {
-  name: string
-  count: number
+/**
+ * Fetches and sorts entries from a specified collection by published date (newest first).
+ * Also sets `nextSlug`, `nextTitle`, `prevSlug`, and `prevTitle` for navigation.
+ */
+export async function getSortedEntries(
+  collectionName: string,
+): Promise<{ body: string; data: BlogPostData; slug: string }[]> {
+  const allEntries = (await getCollection(collectionName, ({ data }) => {
+    return import.meta.env.PROD ? data.draft !== true : true
+  })) as unknown as { body: string; data: BlogPostData; slug: string }[]
+
+  // Sort entries by published date (newest first)
+  const sorted = allEntries.sort((a, b) => {
+    const dateA = new Date(a.data.published)
+    const dateB = new Date(b.data.published)
+    return dateA > dateB ? -1 : 1
+  })
+
+  // Set next and previous slugs/titles for navigation
+  for (let i = 1; i < sorted.length; i++) {
+    sorted[i].data.nextSlug = sorted[i - 1].slug
+    sorted[i].data.nextTitle = sorted[i - 1].data.title
+  }
+
+  for (let i = 0; i < sorted.length - 1; i++) {
+    sorted[i].data.prevSlug = sorted[i + 1].slug
+    sorted[i].data.prevTitle = sorted[i + 1].data.title
+  }
+
+  return sorted
 }
 
+/**
+ * Gets a list of tags and their counts from the "posts" collection.
+ */
 export async function getTagList(): Promise<Tag[]> {
-  const allBlogPosts = await getCollection<'posts'>('posts', ({ data }) => {
+  const allPosts = await getCollection('posts', ({ data }) => {
     return import.meta.env.PROD ? data.draft !== true : true
   })
 
   const countMap: { [key: string]: number } = {}
-  allBlogPosts.map((post: { data: { tags: string[] } }) => {
-    post.data.tags.map((tag: string) => {
+  allPosts.map(post => {
+    post.data.tags?.map(tag => {
       if (!countMap[tag]) countMap[tag] = 0
       countMap[tag]++
     })
   })
 
-  // sort tags
+  // Sort tags alphabetically
   const keys: string[] = Object.keys(countMap).sort((a, b) => {
     return a.toLowerCase().localeCompare(b.toLowerCase())
   })
@@ -56,17 +91,16 @@ export async function getTagList(): Promise<Tag[]> {
   return keys.map(key => ({ name: key, count: countMap[key] }))
 }
 
-export type Category = {
-  name: string
-  count: number
-}
-
+/**
+ * Gets a list of categories and their counts from the "posts" collection.
+ */
 export async function getCategoryList(): Promise<Category[]> {
-  const allBlogPosts = await getCollection<'posts'>('posts', ({ data }) => {
+  const allPosts = await getCollection('posts', ({ data }) => {
     return import.meta.env.PROD ? data.draft !== true : true
   })
+
   const count: { [key: string]: number } = {}
-  allBlogPosts.map((post: { data: { category: string | number } }) => {
+  allPosts.map(post => {
     if (!post.data.category) {
       const ucKey = i18n(I18nKey.uncategorized)
       count[ucKey] = count[ucKey] ? count[ucKey] + 1 : 1
@@ -77,6 +111,7 @@ export async function getCategoryList(): Promise<Category[]> {
       : 1
   })
 
+  // Sort categories alphabetically
   const lst = Object.keys(count).sort((a, b) => {
     return a.toLowerCase().localeCompare(b.toLowerCase())
   })
@@ -86,4 +121,15 @@ export async function getCategoryList(): Promise<Category[]> {
     ret.push({ name: c, count: count[c] })
   }
   return ret
+}
+
+// Type definitions
+export type Tag = {
+  name: string
+  count: number
+}
+
+export type Category = {
+  name: string
+  count: number
 }

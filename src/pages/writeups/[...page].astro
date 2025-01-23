@@ -1,0 +1,23 @@
+---
+import type { GetStaticPaths } from 'astro';
+import WriteupPage from '../../components/WriteupPage.astro';
+import Pagination from '../../components/control/Pagination.astro';
+import { PAGE_SIZE } from '../../constants/constants';
+import MainGridLayout from '../../layouts/MainGridLayout.astro';
+import { getSortedEntries } from '../../utils/content-utils'; // Use getSortedEntries
+
+export const getStaticPaths = (async ({ paginate }) => {
+  const allWriteups = await getSortedEntries('writeups'); // Fetch and sort writeups
+  return paginate(allWriteups, { pageSize: PAGE_SIZE });
+}) satisfies GetStaticPaths;
+
+const { page } = Astro.props;
+
+
+const len = page.data.length;
+---
+
+<MainGridLayout>
+  <WriteupPage page={page}></WriteupPage>
+  <Pagination class="mx-auto onload-animation" page={page} style=`animation-delay: calc(var(--content-delay) + ${len * 50}ms)`></Pagination>
+</MainGridLayout>

@@ -41,6 +41,12 @@ export const navBarConfig: NavBarConfig = {
   links: [
     LinkPreset.Home,
     LinkPreset.Archive,
+    
+    {
+      name: 'Writeups',
+      url: '/writeups/',  // This will link to the writeups section
+      external: false,   // This is an internal link
+    },
     LinkPreset.About,
     // {
     //   name: 'GitHub',

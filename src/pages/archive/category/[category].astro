@@ -1,24 +1,35 @@
 ---
-import { getCategoryList } from '@utils/content-utils'
-import MainGridLayout from '@layouts/MainGridLayout.astro'
-import ArchivePanel from '@components/ArchivePanel.astro'
-import { i18n } from '@i18n/translation'
-import I18nKey from '@i18n/i18nKey'
+import { getCategoryList } from '@utils/content-utils';
+import MainGridLayout from '@layouts/MainGridLayout.astro';
+import ArchivePanel from '@components/ArchivePanel.astro';
+import { i18n } from '@i18n/translation';
+import I18nKey from '@i18n/i18nKey';
 
 export async function getStaticPaths() {
-  const categories = await getCategoryList()
-  return categories.map(category => {
+  // Fetch categories from both posts and writeups
+  const postCategories = await getCategoryList('posts');
+  const writeupCategories = await getCategoryList('writeups');
+
+  // Merge categories and remove duplicates
+  const allCategories = [...postCategories, ...writeupCategories].reduce((acc, category) => {
+    if (!acc.some((c) => c.name === category.name)) {
+      acc.push(category);
+    }
+    return acc;
+  }, [] as { name: string; count: number }[]);
+
+  return allCategories.map((category) => {
     return {
       params: {
         category: category.name,
       },
-    }
-  })
+    };
+  });
 }
 
-const category = Astro.params.category as string
+const category = Astro.params.category as string;
 ---
 
 <MainGridLayout title={i18n(I18nKey.archive)} description={i18n(I18nKey.archive)}>
-    <ArchivePanel categories={[category]}></ArchivePanel>
+  <ArchivePanel categories={[category]}></ArchivePanel>
 </MainGridLayout>

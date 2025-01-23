@@ -1,0 +1,40 @@
+---
+import MainGridLayout from '@layouts/MainGridLayout.astro';
+import { getSortedEntries } from '@utils/content-utils';
+import { formatDateToYYYYMMDD } from '@utils/date-utils';
+import { Icon } from 'astro-icon/components';
+import PostCard from '@components/PostCard.astro'; // Reuse the PostCard component
+
+// Fetch all writeups
+const allWriteups = await getSortedEntries('writeups');
+
+// Initialize delay for staggered animations
+let delay = 0;
+const interval = 50; // Delay between each card's animation
+---
+
+<MainGridLayout title="Writeups" description="A collection of writeups.">
+  <div class="container">
+    <!-- List of writeups -->
+    <div class="space-y-6">
+      {allWriteups.map((entry) => {
+        return (
+          <PostCard
+            entry={entry}
+            title={entry.data.title}
+            tags={entry.data.tags}
+            category={entry.data.category}
+            published={entry.data.published}
+            updated={entry.data.updated}
+            url={`/writeups/${entry.slug}/`}
+            image={entry.data.image}
+            description={entry.data.description}
+            draft={entry.data.draft}
+            class:list="onload-animation"
+            style=`animation-delay: calc(var(--content-delay) + ${delay++ * interval}ms);`
+          ></PostCard>
+        );
+      })}
+    </div>
+  </div>
+</MainGridLayout>
