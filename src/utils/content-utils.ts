@@ -9,13 +9,19 @@ import { i18n } from '@i18n/translation'
  */
 export async function getSortedEntries(
   collectionName: string,
-): Promise<{ body: string; data: BlogPostData; slug: string }[]> {
+): Promise<{ body: string; data: BlogPostData; slug: string; collection: string }[]> {
   const allEntries = (await getCollection(collectionName, ({ data }) => {
     return import.meta.env.PROD ? data.draft !== true : true
   })) as unknown as { body: string; data: BlogPostData; slug: string }[]
 
+  // Add the `collection` field to each entry
+  const entriesWithCollection = allEntries.map((entry) => ({
+    ...entry,
+    collection: collectionName,
+  }))
+
   // Sort entries by published date (newest first)
-  const sorted = allEntries.sort((a, b) => {
+  const sorted = entriesWithCollection.sort((a, b) => {
     const dateA = new Date(a.data.published)
     const dateB = new Date(b.data.published)
     return dateA > dateB ? -1 : 1
@@ -40,32 +46,9 @@ export async function getSortedEntries(
  * Also sets `nextSlug`, `nextTitle`, `prevSlug`, and `prevTitle` for navigation.
  */
 export async function getSortedPosts(): Promise<
-  { body: string; data: BlogPostData; slug: string }[]
+  { body: string; data: BlogPostData; slug: string; collection: string }[]
 > {
-  // Fetch posts from the "posts" collection only
-  const blogPosts = (await getCollection('posts', ({ data }) => {
-    return import.meta.env.PROD ? data.draft !== true : true
-  })) as unknown as { body: string; data: BlogPostData; slug: string }[]
-
-  // Sort posts by published date (newest first)
-  const sorted = blogPosts.sort((a, b) => {
-    const dateA = new Date(a.data.published)
-    const dateB = new Date(b.data.published)
-    return dateA > dateB ? -1 : 1
-  })
-
-  // Set next and previous slugs/titles for navigation
-  for (let i = 1; i < sorted.length; i++) {
-    sorted[i].data.nextSlug = sorted[i - 1].slug
-    sorted[i].data.nextTitle = sorted[i - 1].data.title
-  }
-
-  for (let i = 0; i < sorted.length - 1; i++) {
-    sorted[i].data.prevSlug = sorted[i + 1].slug
-    sorted[i].data.prevTitle = sorted[i + 1].data.title
-  }
-
-  return sorted
+  return getSortedEntries('posts')
 }
 
 /**
@@ -73,7 +56,7 @@ export async function getSortedPosts(): Promise<
  * Also sets `nextSlug`, `nextTitle`, `prevSlug`, and `prevTitle` for navigation.
  */
 export async function getAllSortedPosts(): Promise<
-  { body: string; data: BlogPostData; slug: string }[]
+  { body: string; data: BlogPostData; slug: string; collection: string }[]
 > {
   const blogPosts = await getSortedEntries('posts') // Fetch posts
   const writeups = await getSortedEntries('writeups') // Fetch writeups

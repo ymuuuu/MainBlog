@@ -5,9 +5,10 @@ import Pagination from '../components/control/Pagination.astro'
 import { PAGE_SIZE } from '../constants/constants'
 import MainGridLayout from '../layouts/MainGridLayout.astro'
 import { getSortedPosts } from '../utils/content-utils'
+import { getPostUrlBySlug } from '../utils/url-utils'
 
 export const getStaticPaths = (async ({ paginate }) => {
-  const allBlogPosts = await getSortedPosts() // Only fetch posts from the "posts" collection
+  const allBlogPosts = await getSortedPosts() // Fetch posts with the `collection` field
   return paginate(allBlogPosts, { pageSize: PAGE_SIZE })
 }) satisfies GetStaticPaths
 
