@@ -1,9 +1,9 @@
 ---
-title: Android Emulator Setup
+title: Newbie Android Emulator Setup
 published: 2024-12-17
 description: "Android Emulator Setup for Windows Without Android Studio IDE."
 tags: ["android", "emulator", "pentest","cybersecurity"]
-image: https://miro.medium.com/v2/resize:fit:1024/1*Kxa_1fuHF4BMBQkq8Uyz0Q.jpeg
+image: AndroidEmulatorDesgin.webp
 category: Notes
 draft: false
 ---

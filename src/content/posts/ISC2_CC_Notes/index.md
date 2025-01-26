@@ -3,7 +3,7 @@ title: ISC2 CC Exam Notes
 published: 2024-12-08
 description: "Certified in Cybersecurity Exam Notes made by a noob guy."
 tags: ["cybersecurity", "ISC2", "CC","exam","certification"]
-image: https://images.unsplash.com/photo-1698086032723-77b19d2ce2f2?ixlib=rb-4.0.3&q=85&fm=jpg&crop=entropy&cs=srgb
+image: DALL·E 2025-01-26 11.10.59 - A rectangular banner image for the article titled 'ISC2 CC Exam Notes by a noob Pentester.' The design features a pixel art style with a cybersecurity.webp
 category: Notes
 draft: false
 ---
