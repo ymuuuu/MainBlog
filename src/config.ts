@@ -15,7 +15,7 @@ export const siteConfig: SiteConfig = {
     fixed: true,     // Hide the theme color picker for visitors
   },
   banner: {
-    enable: true,
+    enable: false,
     src: 'assets/images/coverFHD.jpeg',   // Relative to the /src directory. Relative to the /public directory if it starts with '/'
     position: 'top',      // Equivalent to object-position, only supports 'top', 'center', 'bottom'. 'center' by default
     credit: {
