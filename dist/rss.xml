@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>N00B BLOG</title><description>by ymuu</description><link>https://ymuuuu.github.io/</link><language>en</language><item><title>Newbie Android Emulator Setup</title><link>https://ymuuuu.github.io/posts/android_emulator_setup/</link><guid isPermaLink="true">https://ymuuuu.github.io/posts/android_emulator_setup/</guid><description>Android Emulator Setup for Windows Without Android Studio IDE.</description><pubDate>Tue, 17 Dec 2024 00:00:00 GMT</pubDate><content:encoded>&lt;h1&gt;( بِسْمِ اللَّـهِ الرَّحْمَـٰنِ الرَّحِيمِ )&lt;/h1&gt;
+&lt;p&gt;:::caution
+#FreePalastine
+:::&lt;/p&gt;
+&lt;h2&gt;Intro&lt;/h2&gt;
+&lt;p&gt;Recently, I&apos;ve been exploring Android hacking and testing. While it&apos;s been quite enjoyable, I&apos;ve faced challenges with setting up the environment—specifically with emulators.&lt;/p&gt;
+&lt;p&gt;I&apos;ve experimented with several emulators, and here&apos;s my honest feedback:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Genymotion → extremely buggy&lt;/li&gt;
+&lt;li&gt;NOX → reminiscent of Bluestacks (if you know what I mean)&lt;/li&gt;
+&lt;li&gt;VM with x86 Image → lacks user-friendliness&lt;/li&gt;
+&lt;li&gt;Android Studio → requires excessive computing power&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2&gt;Issue and Resolution&lt;/h2&gt;
+&lt;p&gt;While each emulator has its share of bugs and issues, Android Studio proved to be the most reliable. However, the main drawback was needing to launch the entire IDE just to run the emulator. I wondered if there was a way to run the Android Emulator (Android Device Manager) without launching the full IDE and consuming unnecessary resources. After seeing this capability on Linux and MacOS, I decided to explore the possibility for Windows.&lt;/p&gt;
+&lt;p&gt;This is exactly what I&apos;ll guide you through today.&lt;/p&gt;
+&lt;h2&gt;Why Android Studio?&lt;/h2&gt;
+&lt;p&gt;It&apos;s the most comprehensive emulator available for penetration testing needs. It offers numerous APIs and diverse image types, including both rooted and non-rooted versions, with or without GApps, and supports various mobile screen sizes.&lt;/p&gt;
+&lt;h2&gt;Steps&lt;/h2&gt;
+&lt;p&gt;:::important
+If you already have Android Studio installed, please skip to the IMPORTANT PART
+:::&lt;/p&gt;
+&lt;p&gt;First, we need to install Android Studio → &lt;a href=&quot;https://developer.android.com/studio&quot;&gt;LINK&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;After installation, open Android Studio and navigate to the Device Manager&lt;/p&gt;
+&lt;p&gt;Find it in the top-left menu: Tools → Device Manager&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;image.png&quot; alt=&quot;image.png&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;As you can see, I&apos;ve set up several devices, mostly Nexus 6. Why? This device offers root options with minimal issues, though without GApps. For CTFs, you won&apos;t really need GApps, but for real penetration testing scenarios, you definitely will.&lt;/p&gt;
+&lt;p&gt;Now click the Plus Icon and select &quot;Create Virtual Machine&quot;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;image%201.png&quot; alt=&quot;image.png&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;here type nexus 6 and click next&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;image%202.png&quot; alt=&quot;image.png&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;Here you&apos;ll see a variety of options to choose from. Select whichever API you want to test on, including AOSP and GApps&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;image%203.png&quot; alt=&quot;image.png&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;After downloading and selecting your preferred option, click Next&lt;/p&gt;
+&lt;h2&gt;IMPORTANT PART&lt;/h2&gt;
+&lt;p&gt;Here comes an important part: When selecting the name, avoid using any spaces to make it easier to use later. Make sure to copy this name.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;image%204.png&quot; alt=&quot;image.png&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;Next, scroll down and uncheck &quot;Enable device frame&quot;.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;image%205.png&quot; alt=&quot;image.png&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;If you click on Advanced Settings, you&apos;ll see the system hardware configuration. If you&apos;re not familiar with these settings, it&apos;s best to leave them as they are. Click Finish when you&apos;re done.&lt;/p&gt;
+&lt;p&gt;Now that you have your emulator set up, note that the AVD manager is &lt;strong&gt;MOSTLY&lt;/strong&gt; installed in this directory&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;C:\Users\%USERPROFILE%\AppData\Local\Android\Sdk\emulator\
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;To run the emulator, use:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;C:\Users\%USERPROFILE%\AppData\Local\Android\Sdk\emulator\emulator
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;To launch a specific emulator in PowerShell (without quotes), use:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;C:\Users\%USERPROFILE%\AppData\Local\Android\Sdk\emulator\emulator -avd &quot;nameofAVD&quot;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Simply enter this command in a PowerShell terminal to start the emulator without running Android Studio.&lt;/p&gt;
+&lt;p&gt;For convenience, you can save these commands for different APIs in a &lt;code&gt;.bat&lt;/code&gt; file like this:&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;image%206.png&quot; alt=&quot;image.png&quot; /&gt;&lt;/p&gt;
+&lt;p&gt;:::warning
+Happy APK Hacking
+:::&lt;/p&gt;
+</content:encoded></item><item><title>ISC2 CC Exam Notes</title><link>https://ymuuuu.github.io/posts/isc2_cc_notes/</link><guid isPermaLink="true">https://ymuuuu.github.io/posts/isc2_cc_notes/</guid><description>Certified in Cybersecurity Exam Notes made by a noob guy.</description><pubDate>Sun, 08 Dec 2024 00:00:00 GMT</pubDate><content:encoded>&lt;h1&gt;( بِسْمِ اللَّـهِ الرَّحْمَـٰنِ الرَّحِيمِ )&lt;/h1&gt;
+&lt;p&gt;:::caution
+#FreePalastine
+:::&lt;/p&gt;
+&lt;h2&gt;Exam Review&lt;/h2&gt;
+&lt;p&gt;The ISC2 CC exam is comprehensive, rich in content, and consists of multiple-choice questions. It is not as straightforward as some might claim; most questions require not just memorization but a deep understanding to identify the best choice among several options. The exam is designed to be tricky, so it is crucial to read each question carefully. I completed the exam in approximately 25 minutes.&lt;/p&gt;
+&lt;p&gt;The exam took place at the AUC - Engineering Faculty Building. Candidates are not allowed to bring any personal belongings into the testing hall; these must be left in a locker provided outside. Inside the testing hall, other candidates may also be taking exams. An escort will guide you to your designated PC where you will begin your exam. The testing hall is closely monitored, so any attempts to circumvent the rules will be detected. If you need assistance during the exam, simply raise your hand, and a proctor will attend to you.&lt;/p&gt;
+&lt;p&gt;Overall, the ISC2 CC exam is a rigorous assessment of your cybersecurity knowledge and skills. Success requires not only preparation but also careful attention to detail during the exam.&lt;/p&gt;
+&lt;p&gt;:::note
+The Ultimate Super Duper Notes
+&lt;a href=&quot;https://www.notion.so/ISC2-CC-Exam-Notes-14f46f5c6df880619cf5c0aa4427fd92?pvs=21&quot;&gt;Click Here&lt;/a&gt;
+:::&lt;/p&gt;
+</content:encoded></item></channel></rss>
