@@ -4,7 +4,7 @@ published: 2024-07-07
 description: "This writeup details the steps taken to solve the CyberAnime Web Challenge on Cybertalents."
 image: "https://miro.medium.com/v2/resize:fit:1400/format:webp/1*Bt2se2TrX7SoFY05Hwv6nw.png"
 tags: ["web", "CTF", "pentest","cybersecurity","cybertalents","writeup"]
-category: "Writeups"
+category: Writeups
 lang: "en"
 draft: false
 ---
