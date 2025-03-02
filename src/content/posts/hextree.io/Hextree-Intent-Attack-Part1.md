@@ -5,12 +5,17 @@ description: "This writeup details the steps taken to solve Hextree.io Intent At
 image: "https://pbs.twimg.com/profile_images/1657684082506039296/fbxkGlEX_400x400.png"
 tags: ["android", "pentest","cybersecurity","hextree.io","writeup","APK"]
 category: Writeups
-lang: "en"
+lang: "en,ar"
 draft: false
 ---
 # ( بِسْمِ اللَّـهِ الرَّحْمَـٰنِ الرَّحِيمِ )
 :::caution
  #FreePalastine
+:::
+# Introduction
+In this noob writeup we will explore the world of activities and intents, we will solve 7 challenges with 7 different flags and 7 different topics. We will be focusing on activities from Flag1 to Flag7. Enjoy!
+:::warning 
+I am a noob android guy, if you find any mistake pls ignore, or maybe report it?  
 :::
 
 ## Some Definitions Before We Start
@@ -236,7 +241,9 @@ public enum State {
 }
 
 ```
-
+:::important 
+Only Engineers will get it (kidding)
+:::
 The first thing that came to my mind when I saw this was **state machines**. If you’re familiar with state machines, you’ll know they define a flow that determines the current state, the next state, and the actions associated with each state.
 
 Going deeper, we find the main function (I assume) called `stateMachine`:
@@ -285,7 +292,7 @@ public void stateMachine(Intent intent) {
 }
 ```
 
-If you’re a good script kiddie, you’ll recognize that this is just a series of nested conditions. To trigger the desired behavior, we need to call the actions in the correct order.
+If you’re a good `script kiddie`, you’ll recognize that this is just a series of nested conditions. To trigger the desired behavior, we need to call the actions in the correct order.
 
 You could do this with a Proof of Concept (POC) app using Android Studio, but I managed to achieve it using the `am` manager, which simplifies things. Here’s how:
 
@@ -296,17 +303,21 @@ We need to start from the topmost action and proceed in the following order:
 3. `GET_FLAG_ACTION`
 4. `INIT_ACTION`
 
+:::caution
 **The order is crucial!** Missing the order will cause the process to fail.
+:::
 
 ```bash
-adb shell am start -n io.hextree.attacksurface/.activities.Flag4Activity -a PREPARE_ACTION; \\
-adb shell am start -n io.hextree.attacksurface/.activities.Flag4Activity -a BUILD_ACTION; \\
-adb shell am start -n io.hextree.attacksurface/.activities.Flag4Activity -a GET_FLAG_ACTION; \\
+adb shell am start -n io.hextree.attacksurface/.activities.Flag4Activity -a PREPARE_ACTION; \
+adb shell am start -n io.hextree.attacksurface/.activities.Flag4Activity -a BUILD_ACTION; \
+adb shell am start -n io.hextree.attacksurface/.activities.Flag4Activity -a GET_FLAG_ACTION; \
 adb shell am start -n io.hextree.attacksurface/.activities.Flag4Activity -a INIT_ACTION
 
 ```
 
+:::tip
 If this block of commands doesn’t work, try running them one at a time.
+:::
 
 ```bash
 03-01 15:34:17.535  3570  3570 I Flag4   : success() called!
@@ -405,6 +416,9 @@ public class MainActivity extends AppCompatActivity {
     }
 }
 ```
+:::note
+this is only more illustration for noob guys like me, if you already got it then skip.
+:::
 
 Still confused? Here’s how I managed to understand it:
 
@@ -427,8 +441,6 @@ I hope this makes it clearer when writing your POC app.
 03-01 16:24:14.766  3685  3685 I Flag5   : success() called!
 03-01 16:24:14.852  3685  3685 I Flag5   : HXT{xxxxxxxxxxxx}
 ```
-
----
 
 ---
 
@@ -514,7 +526,7 @@ intent3.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION); // Add the required fla
 
 We changed the `reason` to `"next"` so the condition in **Flag5Activity** evaluates to `true`, triggering `startActivity(this.nextIntent)`. Then, we set the target activity to **Flag6Activity** and added the `FLAG_GRANT_READ_URI_PERMISSION` flag.
 
-At first glance, this might seem complicated, but it’s actually quite simple. Think of it as an **SSRF (Server-Side Request Forgery)** vulnerability. In SSRF, you abuse a service to access internal resources that you wouldn’t normally have access to as an external user. Similarly, here we don’t have direct access to **Flag6Activity** because it’s not exported. However, by leveraging **Flag5Activity**, we can gain indirect access from the inside. Got it?
+At first glance, this might seem complicated, but it’s actually quite simple. Think of it as an **SSRF (Server-Side Request Forgery)** web vulnerability. In SSRF, you abuse a service to access internal resources that you wouldn’t normally have access to as an external user. Similarly, here we don’t have direct access to **Flag6Activity** because it’s **NOT** exported. However, by leveraging **Flag5Activity**, we can gain indirect access from the inside. Got it?
 
 ```bash
 03-01 16:38:44.088  3685  3685 I Flag6   : success() called!
@@ -619,14 +631,18 @@ With `FLAG_ACTIVITY_SINGLE_TOP`:
 # Conclusion
 
 So this is it for Part1, we managed to get the first 7 flag for the apk, which was all for the activity part. We will continue digging more in upcoming parts inshalah.
-:::important 
+:::tip 
 I left some references in the end which I find super usefull, some were already mentioned above, make sure to check them all!
+:::
+:::important 
+If anyone has any question or inquire or even want to contribute, feel free to hit me on any of social, I would love to discuss!
 :::
 
 ---
 
 # References
 
+**OFCOURSE HEXTREE.IO**
 1. **Android Activity Lifecycle**  
    [https://medium.com/@ranjeet123/android-activity-lifecycle-in-detail-eaf2931a1b37](https://medium.com/@ranjeet123/android-activity-lifecycle-in-detail-eaf2931a1b37)
 
