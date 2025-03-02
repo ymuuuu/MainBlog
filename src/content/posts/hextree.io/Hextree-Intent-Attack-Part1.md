@@ -635,7 +635,7 @@ So this is it for Part1, we managed to get the first 7 flag for the apk, which w
 I left some references in the end which I find super usefull, some were already mentioned above, make sure to check them all!
 :::
 :::important 
-If anyone has any question or inquire or even want to contribute, feel free to hit me on any of social, I would love to discuss!
+If anyone has any question or an inquire or even want to contribute, feel free to hit me on any of social, I would love to discuss!
 :::
 
 ---
