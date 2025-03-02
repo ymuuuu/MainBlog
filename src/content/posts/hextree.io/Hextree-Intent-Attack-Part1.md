@@ -2,7 +2,7 @@
 title: "Hextree.io Intent Attack Writeup Part 1"
 published: 2025-02-03
 description: "This writeup details the steps taken to solve Hextree.io Intent Attack Surface APK"
-image: "https://pbs.twimg.com/profile_images/1657684082506039296/fbxkGlEX_400x400.png"
+image: "Hextree.io Intent Attack Writeup Part 1.webp"
 tags: ["android", "pentest","cybersecurity","hextree.io","writeup","APK"]
 category: Writeups
 lang: "en,ar"
