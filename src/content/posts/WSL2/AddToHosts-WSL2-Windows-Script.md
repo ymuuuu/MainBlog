@@ -16,6 +16,7 @@ draft: false
 # AddToHosts
 
 A PowerShell script to simplify adding entries to **Windows** and **WSL (Kali Linux)** hosts files, with automatic backups and duplicate checks. Perfect for CTF setups, local development, or network testing.
+
 The idea came when I was trying to play HTB or THM Machines using WSL2, I have my wsl2 in mirror mode so they can capture the same traffic, but since each one has its own hosts file, I needed to update both manually, so I said why not script it ? 
 
 
