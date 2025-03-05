@@ -17,9 +17,6 @@ draft: false
 
 A PowerShell script to simplify adding entries to **Windows** and **WSL (Kali Linux)** hosts files, with automatic backups and duplicate checks. Perfect for CTF setups, local development, or network testing.
 
-![Demo](https://img.shields.io/badge/Platform-Windows%20%7C%20WSL%20(Kali)-blue) 
-![License](https://img.shields.io/badge/License-MIT-green)
-
 ## Features ✨
 - **Cross-Platform Support**: Updates hosts files for both Windows and WSL (Kali Linux) (See below if you want other distros).
 - **Automatic Backups**: Creates `hosts.bak` on first run for easy recovery.
