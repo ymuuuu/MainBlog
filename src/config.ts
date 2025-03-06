@@ -82,6 +82,11 @@ export const profileConfig: ProfileConfig = {
       icon: 'fa6-brands:discord',
       url: 'https://discord.com/ymuuu_',
     },
+    {
+      name:'HackTheBox',
+      icon:'fa6-brands:font-awesome',
+      url:'https://app.hackthebox.com/profile/1849405'
+    }
   ],
 }
 

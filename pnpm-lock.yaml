@@ -29,6 +29,9 @@ importers:
       '@fontsource/roboto':
         specifier: ^5.1.0
         version: 5.1.0
+      '@iconify-icons/teenyicons':
+        specifier: ^1.2.4
+        version: 1.2.4
       '@iconify-json/fa6-brands':
         specifier: ^1.2.3
         version: 1.2.3
@@ -1183,6 +1186,9 @@ packages:
 
   '@fontsource/roboto@5.1.0':
     resolution: {integrity: sha512-cFRRC1s6RqPygeZ8Uw/acwVHqih8Czjt6Q0MwoUoDe9U3m4dH1HmNDRBZyqlMSFwgNAUKgFImncKdmDHyKpwdg==}
+
+  '@iconify-icons/teenyicons@1.2.4':
+    resolution: {integrity: sha512-Yj85SZX/y4Jnz8LoVHITrYnOX5sFT8JL98qB9WcKmVGdV1fCBbKdXBADkPe9Pp0SikDJsC6G2JdOSTWR/lysDA==}
 
   '@iconify-json/fa6-brands@1.2.3':
     resolution: {integrity: sha512-vwdbeIpy9BgGonD6dwMIoZnzn/xo3w/mn1A+YcNxo42xTmVJeX2oobGlXlbN9P4BNi879dK9xvOjZpj7hYV2mg==}
@@ -6728,6 +6734,10 @@ snapshots:
   '@fontsource-variable/jetbrains-mono@5.1.1': {}
 
   '@fontsource/roboto@5.1.0': {}
+
+  '@iconify-icons/teenyicons@1.2.4':
+    dependencies:
+      '@iconify/types': 2.0.0
 
   '@iconify-json/fa6-brands@1.2.3':
     dependencies:

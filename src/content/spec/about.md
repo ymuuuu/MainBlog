@@ -1,7 +1,7 @@
 # About
 #### Just a noob blog posting some random cyber noob friendly stuff.
 
-<!-- ::github{repo="ymuuuu/ymuuuu"} -->
+::github{repo="ymuuuu/ymuuuu"}
 
 ```javascript
 require(fs).readFileSync('/flag.txt', 'utf8');
