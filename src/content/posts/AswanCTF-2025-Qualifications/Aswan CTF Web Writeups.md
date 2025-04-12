@@ -6,7 +6,7 @@ image: "https://scontent.fcai20-3.fna.fbcdn.net/v/t39.30808-6/484512851_12214776
 tags: ["web", "CTF", "pentest","cybersecurity","writeup"]
 category: Writeups
 lang: "en,ar"
-draft: true
+draft: false
 ---
 # ( بِسْمِ اللَّـهِ الرَّحْمَـٰنِ الرَّحِيمِ )
 :::caution
