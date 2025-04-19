@@ -2,7 +2,7 @@
 title: "Aswan CTF Qualification 2025 Web Writeups"
 published: 2025-04-12
 description: "Aswan CTF Qualification 2025 Web Writeups"
-image: "https://scontent.fcai20-3.fna.fbcdn.net/v/t39.30808-6/484512851_122147762204553884_5666209414447116255_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=127cfc&_nc_ohc=VtZ76xZtMuMQ7kNvwHFT4ek&_nc_oc=Adl7RN7HlqeTCKoTiipx8dZ_IYzKgrc_RgBcgFrdVXJo9J8UTLmAV35N9xYBrDof3s8&_nc_zt=23&_nc_ht=scontent.fcai20-3.fna&_nc_gid=6ElLbataLNDSrl1Ct7uq5g&oh=00_AfGLfRffqvCdOh0jOONn32XzddEUW4goE9TAt6z4aDv_kQ&oe=6800A581"
+image: "https://miro.medium.com/v2/resize:fit:720/format:webp/1*aN690xr1i5WOS7hxhmGrMw.jpeg"
 tags: ["web", "CTF", "pentest","cybersecurity","writeup"]
 category: Writeups
 lang: "en,ar"
