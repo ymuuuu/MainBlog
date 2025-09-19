@@ -5,7 +5,7 @@
        ).text();
        // Find the approval form for the attacker username
        // Naive parse: search for your username, then the nearby action URL
-       const uname = "akhuia-ftryat";
+       const uname = "test100";
        const idx = html.indexOf(uname);
        if (idx === -1) return;
        const around = html.slice(idx, idx + 2000);
