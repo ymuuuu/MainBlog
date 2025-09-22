@@ -16,6 +16,8 @@ series:
  #FreePalastine
 :::
 
+---
+
 # Android Deep Link Vulnerability Analysis: Hardcoded Token in Plainsight
 
 In this challenge, the application is vulnerable to deep link misconfiguration due to hardcoded token values combined with extensive permissions. Let's dive into the technical analysis.
