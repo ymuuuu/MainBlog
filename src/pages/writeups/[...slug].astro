@@ -13,6 +13,8 @@ import PostMetadata from '../../components/PostMeta.astro'
 import ImageWrapper from '../../components/misc/ImageWrapper.astro'
 import { profileConfig, siteConfig } from '../../config'
 import { formatDateToYYYYMMDD } from '../../utils/date-utils'
+import PostCard from '../../components/PostCard.astro'
+import { getSeriesChildren } from '../../utils/content-utils'
 
 export async function getStaticPaths() {
   const writeupsEntries = await getCollection('writeups', ({ data }) => {
@@ -28,6 +30,11 @@ const { entry } = Astro.props
 const { Content, headings } = await entry.render()
 
 const { remarkPluginFrontmatter } = await entry.render()
+
+let seriesChildren: { slug: string; collection: 'posts' | 'writeups'; data: any }[] = []
+if (entry.data.series?.parent && entry.data.series?.id) {
+  seriesChildren = await getSeriesChildren(entry.data.series.id, 'writeups')
+}
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -104,12 +111,46 @@ const jsonLd = {
       </Markdown>
 
       {licenseConfig.enable && <License title={entry.data.title} slug={entry.slug} pubDate={entry.data.published} class="mb-6 rounded-xl license-container onload-animation"></License>}
+
+      {entry.data.series?.parent && (
+        <div class="onload-animation">
+          <div class="border-[var(--line-divider)] border-dashed border-b-[1px] mb-5"></div>
+          <div class="font-bold text-2xl mb-3 flex items-center gap-2 text-black/90 dark:text-white/90">
+            <Icon name="material-symbols:stack-rounded" class="text-[var(--primary)]" />
+            {(entry.data.series.name) ?? 'In this series'}
+          </div>
+          {(() => {
+            let delay = 0
+            const interval = 50
+            return (
+              <div class="space-y-4 mb-4">
+                {seriesChildren.map((child) => (
+                  <PostCard
+                    entry={child}
+                    title={child.data.title}
+                    tags={child.data.tags}
+                    category={child.data.category}
+                    published={child.data.published}
+                    updated={child.data.updated}
+                    url={getPostUrlBySlug(child.slug, 'writeups')}
+                    image={child.data.image}
+                    description={child.data.description}
+                    draft={child.data.draft}
+                    class:list="onload-animation"
+                    style={`animation-delay: calc(var(--content-delay) + ${delay++ * interval}ms);`}
+                  />
+                ))}
+              </div>
+            )
+          })()}
+        </div>
+      )}
     </div>
   </div>
 
   <!-- Navigation between writeups -->
   <div class="flex flex-col md:flex-row justify-between mb-4 gap-4 overflow-hidden w-full">
-    <a href={entry.data.nextSlug ? getPostUrlBySlug(entry.data.nextSlug) : "#"}
+  <a href={entry.data.nextSlug ? getPostUrlBySlug(entry.data.nextSlug, 'writeups') : "#"}
        class:list={["w-full font-bold overflow-hidden active:scale-95", {"pointer-events-none": !entry.data.nextSlug}]}>
       {entry.data.nextSlug && <div class="btn-card rounded-2xl w-full h-[3.75rem] max-w-full px-4 flex items-center !justify-start gap-4">
         <Icon name="material-symbols:chevron-left-rounded" class="text-[2rem] text-[var(--primary)]" />
@@ -119,7 +160,7 @@ const jsonLd = {
       </div>}
     </a>
 
-    <a href={entry.data.prevSlug ? getPostUrlBySlug(entry.data.prevSlug) : "#"}
+  <a href={entry.data.prevSlug ? getPostUrlBySlug(entry.data.prevSlug, 'writeups') : "#"}
        class:list={["w-full font-bold overflow-hidden active:scale-95", {"pointer-events-none": !entry.data.prevSlug}]}>
       {entry.data.prevSlug && <div class="btn-card rounded-2xl w-full h-[3.75rem] max-w-full px-4 flex items-center !justify-end gap-4">
         <div class="overflow-hidden transition overflow-ellipsis whitespace-nowrap max-w-[calc(100%_-_3rem)] text-black/75 dark:text-white/75">

@@ -8,8 +8,8 @@ import { i18n } from '@i18n/translation'
  * Also sets `nextSlug`, `nextTitle`, `prevSlug`, and `prevTitle` for navigation.
  */
 export async function getSortedEntries(
-  collectionName: string,
-): Promise<{ body: string; data: BlogPostData; slug: string; collection: string }[]> {
+  collectionName: 'posts' | 'writeups',
+): Promise<{ body: string; data: BlogPostData; slug: string; collection: 'posts' | 'writeups' }[]> {
   const allEntries = (await getCollection(collectionName, ({ data }) => {
     return import.meta.env.PROD ? data.draft !== true : true
   })) as unknown as { body: string; data: BlogPostData; slug: string }[]
@@ -46,9 +46,11 @@ export async function getSortedEntries(
  * Also sets `nextSlug`, `nextTitle`, `prevSlug`, and `prevTitle` for navigation.
  */
 export async function getSortedPosts(): Promise<
-  { body: string; data: BlogPostData; slug: string; collection: string }[]
+  { body: string; data: BlogPostData; slug: string; collection: 'posts' | 'writeups' }[]
 > {
-  return getSortedEntries('posts')
+  const entries = await getSortedEntries('posts')
+  // Exclude child posts that belong to a series but are not designated as parent
+  return entries.filter(e => !(e.data.series && e.data.series.parent !== true))
 }
 
 /**
@@ -56,7 +58,7 @@ export async function getSortedPosts(): Promise<
  * Also sets `nextSlug`, `nextTitle`, `prevSlug`, and `prevTitle` for navigation.
  */
 export async function getAllSortedPosts(): Promise<
-  { body: string; data: BlogPostData; slug: string; collection: string }[]
+  { body: string; data: BlogPostData; slug: string; collection: 'posts' | 'writeups' }[]
 > {
   const blogPosts = await getSortedEntries('posts') // Fetch posts
   const writeups = await getSortedEntries('writeups') // Fetch writeups
@@ -145,4 +147,38 @@ export type Tag = {
 export type Category = {
   name: string
   count: number
+}
+
+/**
+ * Returns all children posts of a given series id within a collection.
+ * If `series.order` is provided on children, sorts ascending by it; otherwise falls back to published date.
+ */
+export async function getSeriesChildren(
+  seriesId: string,
+  collectionName: 'posts' | 'writeups',
+): Promise<{ body: string; data: BlogPostData; slug: string; collection: 'posts' | 'writeups' }[]> {
+  const entries = await getSortedEntries(collectionName)
+  const children = entries.filter(e => e.data.series && e.data.series.id === seriesId && e.data.series.parent !== true)
+
+  const hasAnyOrder = children.some(c => typeof c.data.series?.order === 'number')
+  if (hasAnyOrder) {
+    // Sort by explicit order (undefined goes last), then by published date
+    return children.sort((a, b) => {
+      const ao = a.data.series?.order
+      const bo = b.data.series?.order
+      if (ao === undefined && bo === undefined) return new Date(a.data.published) > new Date(b.data.published) ? -1 : 1
+      if (ao === undefined) return 1
+      if (bo === undefined) return -1
+      return ao - bo
+    })
+  }
+  // Default sort by published desc
+  return children.sort((a, b) => (new Date(a.data.published) > new Date(b.data.published) ? -1 : 1))
+}
+
+export async function getSortedWriteups(): Promise<
+  { body: string; data: BlogPostData; slug: string; collection: 'posts' | 'writeups' }[]
+> {
+  const entries = await getSortedEntries('writeups')
+  return entries.filter(e => !(e.data.series && e.data.series.parent !== true))
 }

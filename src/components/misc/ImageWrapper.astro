@@ -36,7 +36,10 @@ if (isLocal) {
   if (!file) {
     console.error(`\n[ERROR] Image file not found: ${normalizedPath.replace('../../', 'src/')}`)
   }
-  img = await file()
+  if (file) {
+    // In non-eager mode, Vite returns a loader function; in eager mode, it may return the module directly
+    img = typeof file === 'function' ? await file() : file
+  }
 }
 
 const imageClass = 'w-full h-full object-cover'

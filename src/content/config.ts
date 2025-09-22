@@ -13,6 +13,22 @@ const postsCollection = defineCollection({
     category: z.string().optional().default(''),
     lang: z.string().optional().default(''),
 
+    // Optional series metadata for grouping related posts under a parent
+    // Usage in frontmatter:
+    // series:
+    //   id: "app-xyz"
+    //   name: "App XYZ Challenges"   # optional, shown on parent page
+    //   parent: true                  # set only on the parent post
+    //   order: 1                      # optional, set on child posts for ordering
+    series: z
+      .object({
+        id: z.string(),
+        name: z.string().optional(),
+        parent: z.boolean().optional().default(false),
+        order: z.number().optional(),
+      })
+      .optional(),
+
     /* For internal use */
     prevTitle: z.string().default(''),
     prevSlug: z.string().default(''),
@@ -33,6 +49,16 @@ const writeupsCollection = defineCollection({
     tags: z.array(z.string()).optional().default([]),
     category: z.string().optional().default(''),
     lang: z.string().optional().default(''),
+
+    // Optional series metadata for grouping related writeups under a parent
+    series: z
+      .object({
+        id: z.string(),
+        name: z.string().optional(),
+        parent: z.boolean().optional().default(false),
+        order: z.number().optional(),
+      })
+      .optional(),
 
     /* For internal use */
     prevTitle: z.string().default(''),

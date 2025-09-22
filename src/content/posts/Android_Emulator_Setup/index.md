@@ -9,6 +9,7 @@ draft: false
 ---
 
 # ( بِسْمِ اللَّـهِ الرَّحْمَـٰنِ الرَّحِيمِ )
+
 :::caution
  #FreePalastine
 :::
@@ -48,7 +49,7 @@ Find it in the top-left menu: Tools → Device Manager
 
 ![image.png](image.png)
 
-As you can see, I've set up several devices, mostly Nexus 6. Why? This device offers root options with minimal issues, though without GApps. For CTFs, you won't really need GApps, but for real penetration testing scenarios, you definitely will. 
+As you can see, I've set up several devices, mostly Nexus 6. Why? This device offers root options with minimal issues, though without GApps. For CTFs, you won't really need GApps, but for real penetration testing scenarios, you definitely will.
 
 Now click the Plus Icon and select "Create Virtual Machine"
 
@@ -62,7 +63,7 @@ Here you'll see a variety of options to choose from. Select whichever API you wa
 
 ![image.png](image%203.png)
 
-After downloading and selecting your preferred option, click Next 
+After downloading and selecting your preferred option, click Next
 
 ## IMPORTANT PART
 

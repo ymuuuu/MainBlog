@@ -4,10 +4,10 @@ import WriteupPage from '../../components/WriteupPage.astro';
 import Pagination from '../../components/control/Pagination.astro';
 import { PAGE_SIZE } from '../../constants/constants';
 import MainGridLayout from '../../layouts/MainGridLayout.astro';
-import { getSortedEntries } from '../../utils/content-utils'; // Use getSortedEntries
+import { getSortedWriteups } from '../../utils/content-utils'; // Use helper
 
 export const getStaticPaths = (async ({ paginate }) => {
-  const allWriteups = await getSortedEntries('writeups'); // Fetch and sort writeups
+  const allWriteups = await getSortedWriteups(); // Fetch and sort writeups, excluding series children
   return paginate(allWriteups, { pageSize: PAGE_SIZE });
 }) satisfies GetStaticPaths;
 
