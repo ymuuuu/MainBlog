@@ -1,5 +1,5 @@
 ---
-title: "8kSec Android – Challenge 02: Broken Crypto"
+title: "Challenge 02: AndroPseudoProtect"
 published: 2025-09-22
 description: "Cracking an insecure encryption routine to recover secrets."
 image: "../../hextree.io/Hextree.io Intent Attack Writeup Part 1.webp"
