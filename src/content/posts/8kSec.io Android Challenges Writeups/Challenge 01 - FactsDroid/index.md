@@ -4,7 +4,7 @@ published: 2025-09-08
 description: "Bypassing Flutter TLS pinning to intercept and manipulate network traffic in a fact-checking app."
 image: "https://lwfiles.mycourse.app/66c35021da1fe6df974b8aee-public/42e3aa7f390f8662c067b48de036761c.png"
 category: "Mobile"
-tags: ["android", "flutter", "tls-pinning", "frida", "network-interception"]
+tags: ["android", "flutter","8ksec.io", "mobile-exploitation", "tls-pinning", "frida", "network-interception"]
 series:
   id: "8ksec-android-challenges"
   order: 1
