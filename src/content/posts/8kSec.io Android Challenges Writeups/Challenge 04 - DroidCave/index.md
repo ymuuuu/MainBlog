@@ -120,6 +120,12 @@ Row: 0 id=1, name=muu, username=muu, password_hex=3132333435, isEncrypted=0
 Row: 1 id=2, name=test for 8ksec poc, username=hi 8ksec, password_hex=386B7365636973676F6F6F6F64, isEncrypted=0
 ```
 
+## POC
+
+With a little help of the glorious, super friend, `claude`, I created a simple POC app which exploits the vulnerability, dumps the data, and directly decode the hex values to plain text again with a simple user interface. You can find it on my `github` (look to your left :"D).
+
+![alt text](2025-09-25_18-48.png)
+
 ## n00bies Questions on the way
 
 ### 1. Why did ADB Work But My POC App did not initially work?
