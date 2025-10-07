@@ -1,6 +1,6 @@
 ---
 title: "8kSec.io Android Challenges"
-published: 2025-09-22
+published: 2025-09-01
 description: "A n00bie's journey through Android application exploitation challenges covering reverse engineering, vulnerability discovery, and mobile security."
 tags: ["android", "mobile", "reverse-engineering","exploitation"]
 category: "Mobile"
