@@ -1,5 +1,5 @@
 ---
-title: "Challenge 02: No-Escape"
+title: "Challenge 02: No Escape"
 published: 2025-09-09
 description: "Bypassing custom Swift jailbreak detection by reverse engineering and hooking with Frida."
 image: "https://lwfiles.mycourse.app/63942c32c9a203516ce07c09-public/89a0440e2116bc24f8fc249451af3bbe.png"
@@ -18,7 +18,7 @@ series:
 
 ---
 
-## **No-Escape: You Can't Trivial-Bypass This**
+## **No Escape: You Can't Trivial-Bypass This**
 
 This challenge gives us an iOS app, "No-Escape". The goal is simple: get the flag. The problem: the app detects our jailbroken device and **quits instantly**.
 
@@ -44,11 +44,11 @@ So yeah, the generic bypass isn't going to cut it. This thing is custom-rolled.
 
 ---
 
-### Step 2: To the Disassembler\
+### Step 2: To the Disassembler
 
 If the front door is locked, we check the windows. I loaded the app's binary into a disassembler to see what it's *actually* doing.
 
-It didn't take long to find the jackpot: a 'manager' function called `_$s9No_Escape12isJailbrokenSbyF`.
+It didn't take long to find the jackpot using the search function in `ghidra` : a 'manager' function called `_$s9No_Escape12isJailbrokenSbyF`.
 
 This function was just a wrapper that called a bunch of *other* checks. This is the code that ran right before the first check:
 
@@ -61,7 +61,7 @@ This function was just a wrapper that called a bunch of *other* checks. This is 
 
 This confirmed it: the app wasn't using a simple high-level API. It was running its own list of checks.
 
------
+---
 
 ### Step 3: The Realization
 
@@ -71,7 +71,7 @@ At this point I paused and asked myself:
 
 The plan was simple: hook the main `isJailbrokenSbyF` function and force it to return `false` (0) before it could report anything. All checks bypassed, one hook.
 
------
+---
 
 ### Step 4: Frida vs. The Binary
 
@@ -87,7 +87,7 @@ I wrote a simple Frida script to hook the function. This is where the *real* fun
 
 At this point I was like... what is this thing even *called*?
 
------
+---
 
 ### Step 5: Finding the Real Name
 
@@ -108,7 +108,7 @@ No Escape -> /private/var/containers/Bundle/Application/.../No Escape.app/No Esc
 
 The binary name was `'No Escape'`, *with a space*. dumb me :"D
 
------
+---
 
 ### Step 6: The Bypass & The Flag
 
