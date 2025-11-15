@@ -18,7 +18,7 @@ FreePalestine
 
 ---
 
-# CTF Writeup: SwizzleMeTimbers - The Tale of the Magic Space
+# SwizzleMeTimbers - The Tale of the Magic Space
 
 This writeup details the process of solving the `SwizzleMeTimbers` iOS CTF challenge. The goal was to bypass a button check to "Unlock Treasure." This challenge was a fantastic lesson in methodology, red herrings, and how a single, easily-missed character in a method name can be the entire puzzle.
 
