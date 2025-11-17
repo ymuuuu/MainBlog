@@ -1,6 +1,6 @@
 ---
 title: "Challenge 01: FridaInTheMiddle"
-published: 2025-11-15
+published: 2025-11-14
 description: "Bypassing iOS anti-frida/anti-hooking using only dynamic analysis"
 image: "https://lwfiles.mycourse.app/66c35021da1fe6df974b8aee-public/b131e9be3ff9f80db6df645546c8cb2a.png"
 category: "Mobile"

@@ -1,6 +1,6 @@
 ---
 title: "8kSec.io iOS Challenges Writeups"
-published: 2025-11-15
+published: 2025-11-13
 description: "A n00bie's journey through iOS application exploitation challenges covering reverse engineering, vulnerability discovery, and mobile security."
 tags: ["ios", "mobile", "reverse-engineering","exploitation", "8ksec"]
 category: "Mobile"
