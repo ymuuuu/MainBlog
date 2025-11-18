@@ -213,3 +213,4 @@ Running this final `script`:
     [+] Patched return value to 0 (false). Proxy check bypassed!```
 
 ![alt text](image.png)
+
