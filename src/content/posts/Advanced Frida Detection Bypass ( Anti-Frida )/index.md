@@ -1,7 +1,7 @@
 ---
 title: "Advanced Frida Detection Bypass ( Anti-Frida )"
 published: 2025-11-27
-description: "A n00bie's journey through iOS application exploitation challenges covering reverse engineering, vulnerability discovery, and mobile security."
+description: "To be changed"
 tags: ["ios", "mobile", "android","frida", "hook", "advanced", "bypass", "native"]
 category: "Mobile"
 image: ""
@@ -181,13 +181,13 @@ Frida's **Gum engine**:
 
 These are the artificats that Frida leaves behind when hooking the app APIs or when even idle.
 
-| Artifact | Location | Description |
-| --- | --- | --- |
-| Port 27042 listening | Network | frida-server binds to this default TCP port to receive commands from the Frida client on your PC |
-| frida-agent-64.so | /proc/self/maps | The main Frida agent library injected into the target process to execute JavaScript hooks |
-| Modified function bytes | libc.so in memory | Frida's Interceptor overwrites function prologues with trampolines (LDR X16; BR X16) to redirect execution |
-| /data/local/tmp/re.frida.server | Filesystem | Directory created by frida-server to store temporary files, gadgets, and agent libraries |
-| frida-server process | /proc | The daemon process running with root privileges that handles injection and communication |
+| Artifact | Location | Detection Method | Description |
+| --- | --- | --- | --- |
+| Port 27042 listening | Network | `connect()` to localhost:27042 | frida-server binds to this default TCP port to receive commands from the Frida client on your PC |
+| frida-agent-64.so | /proc/self/maps | String search for "frida" | The main Frida agent library injected into the target process to execute JavaScript hooks |
+| Modified function bytes | libc.so in memory | Checksum disk vs memory | Frida's Interceptor overwrites function prologues with trampolines (LDR X16; BR X16) to redirect execution |
+| /data/local/tmp/re.frida.server | Filesystem | File existence check | Directory created by frida-server to store temporary files, gadgets, and agent libraries |
+| frida-server process | /proc | Process name enumeration | The daemon process running with root privileges that handles injection and communication |
 
 ---
 
@@ -1103,50 +1103,6 @@ console.log("\\nBacktrace:" + backtrace);
 
 ---
 
-# The Prerequisite: Library Monitoring
-
-## Why We Need This
-
-We can't just use `Process.findModuleByName("libantifrida.so")` directly because **the library isn't loaded yet** when our Frida script starts!
-
-## The Problem
-
-```
-┌────────────────────────────────────────────────────────────────────┐
-                    TIMING PROBLEM                                   
-├────────────────────────────────────────────────────────────────────┤
-                                                                    
-   ❌ WRONG APPROACH:                                               
-                                                                    
-   Frida script starts                                              
-                                                                   
-         ▼                                                          
-   var module = Process.findModuleByName("libantifrida.so");        
-                                                                   
-         ▼                                                          
-   module = NULL  ← Library not loaded yet!                         
-                                                                    
-                                                                    
-    CORRECT APPROACH:                                             
-                                                                    
-   Frida script starts                                              
-                                                                   
-         ▼                                                          
-   Hook do_dlopen() to monitor library loading                      
-                                                                   
-         ▼                                                          
-   Wait for "libantifrida.so" to be loaded...                       
-                                                                   
-         ▼                                                          
-   Hook call_constructor() to catch it after mapping                
-                                                                   
-         ▼                                                          
-   NOW we can get base address and hook syscalls!                   
-                                                                    
-└────────────────────────────────────────────────────────────────────┘
-
-```
-
 ## Questions & Answers
 
 **Q: Why can't we just search by module and hook directly?**
@@ -1165,11 +1121,6 @@ We can't just use `Process.findModuleByName("libantifrida.so")` directly because
 > | `do_dlopen` starts | File path is known | ❌ Not mapped yet |
 > | Memory mapping | Library loaded to memory | ❌ Not initialized |
 > | `call_constructor` | Library's init code runs | **Perfect timing!** |
-
-**Q: What is linker64?**
-
-> A: Android's dynamic linker for 64-bit. It's responsible for loading all .so libraries at runtime.
->
 
 ## The Code Explained
 
@@ -1410,107 +1361,6 @@ function hook_svc(base_addr){
 
 ---
 
-# Complete Flow Diagram
-
-## All Three Checks Combined
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-                         COMPLETE BYPASS FLOW                                 
-├─────────────────────────────────────────────────────────────────────────────┤
-                                                                             
-  APP STARTS                                                                 
-                                                                            
-      ▼                                                                      
-  ┌─────────────────────────────────────────────────────────────────────┐   
-                      FRIDA SCRIPT LOADS                                   
-                                                                           
-    1. Hook connect() in libc.so         ──────► CHECK 1 BYPASS READY     
-    2. Hook do_dlopen() in linker64      ──────► MONITORING LIBRARIES     
-                                                                           
-  └─────────────────────────────────────────────────────────────────────┘   
-                                                                            
-      ▼                                                                      
-  ═══════════════════════════════════════════════════════════════════════   
-                                                                             
-  ┌─────────────────────────────────────────────────────────────────────┐   
-                      CHECK 1: PORT DETECTION                              
-                                                                           
-    Anti-frida: connect(127.0.0.1:27042)                                  
-                                                                          
-         ▼                                                                 
-    Our hook: port = 27043  (changed!)                                     
-                                                                          
-         ▼                                                                 
-    connect() fails → "No Frida"                                         
-                                                                           
-  └─────────────────────────────────────────────────────────────────────┘   
-                                                                            
-      ▼                                                                      
-  ═══════════════════════════════════════════════════════════════════════   
-                                                                             
-  ┌─────────────────────────────────────────────────────────────────────┐   
-                      LIBRARY LOADING                                      
-                                                                           
-    App loads libantifrida.so                                             
-                                                                          
-         ▼                                                                 
-    do_dlopen hook triggers                                                
-                                                                          
-         ▼                                                                 
-    call_constructor hook triggers                                         
-                                                                          
-         ▼                                                                 
-    hook_svc() installs syscall hooks  ──────► CHECKS 2&3 READY           
-                                                                           
-  └─────────────────────────────────────────────────────────────────────┘   
-                                                                            
-      ▼                                                                      
-  ═══════════════════════════════════════════════════════════════════════   
-                                                                             
-  ┌─────────────────────────────────────────────────────────────────────┐   
-                      CHECK 2: FRIDA ARTIFACTS                             
-                                                                           
-    Anti-frida: openat("/proc/self/maps")                                 
-                                                                          
-         ▼                                                                 
-    Our hook: path = "/data/local/tmp/maps"  (redirected!)                
-                                                                          
-         ▼                                                                 
-    Reads fake file (no "frida" strings) → "No Frida"                   
-                                                                           
-  └─────────────────────────────────────────────────────────────────────┘   
-                                                                            
-      ▼                                                                      
-  ═══════════════════════════════════════════════════════════════════════   
-                                                                             
-  ┌─────────────────────────────────────────────────────────────────────┐   
-                      CHECK 3: LIBC CHECKSUM                               
-                                                                           
-    Anti-frida: openat("/proc/self/maps") to find libc                    
-                                                                          
-         ▼                                                                 
-    Same redirect → reads fake maps                                        
-                                                                          
-         ▼                                                                 
-    Search for "libc.so" → NOT FOUND! (removed from fake maps)            
-                                                                          
-         ▼                                                                 
-    Can't get libc address → checksum skipped → "No tampering"          
-                                                                           
-  └─────────────────────────────────────────────────────────────────────┘   
-                                                                            
-      ▼                                                                      
-  ═══════════════════════════════════════════════════════════════════════   
-                                                                             
-                    ALL CHECKS PASSED! APP RUNS NORMALLY 🎉                  
-                                                                             
-└─────────────────────────────────────────────────────────────────────────────┘
-
-```
-
----
-
 # The Fake Maps File
 
 ## What to Remove/Modify
@@ -1519,12 +1369,11 @@ function hook_svc(base_addr){
 
 ```
 ... normal entries ...
-749088f000-749098c000 r--p 00000000  /system/lib64/libc.so      ← REMOVE
-749098c000-7490abf000 r-xp 00000000  /system/lib64/libc.so      ← REMOVE
+749088f000-749098c000 r--p 00000000  /system/lib64/libc.so      ← EDIT
+749098c000-7490abf000 r-xp 00000000  /system/lib64/libc.so      ← EDIT
 ...
-7b5000000-7b5100000 r-xp  frida-agent-64.so                     ← REMOVE
-7b6000000-7b6001000 r--p  frida-gadget.so                       ← REMOVE
-7b7000000-7b7010000 rw-p  [anon:gum-js-loop]                    ← REMOVE
+7b5000000-7b5100000 r-xp  frida-agent-64.so                     ← EDIT
+7b6000000-7b6001000 r--p  frida-gadget.so                       ← EDIT
 ... normal entries ...
 
 ```
@@ -1533,18 +1382,13 @@ function hook_svc(base_addr){
 
 ```
 ... normal entries ...
-(libc.so lines removed)
-(frida lines removed)
+749088f000-749098c000 r--p 00000000  /system/lib64/xxxx.so      
+749098c000-7490abf000 r-xp 00000000  /system/lib64/xxxx.so      
+...
+7b5000000-7b5100000 r-xp  xxxx-xxxx-64.so                     
+7b6000000-7b6001000 r--p  xxxx-xxxx.so                                         
 ... normal entries ...
 
 ```
 
 ---
-
-| Artifact | Location | Detection Method | Description |
-| --- | --- | --- | --- |
-| Port 27042 listening | Network | `connect()` to localhost:27042 | frida-server binds to this default TCP port to receive commands from the Frida client on your PC |
-| [frida-agent-64.so](http://frida-agent-64.so/) | /proc/self/maps | String search for "frida" | The main Frida agent library injected into the target process to execute JavaScript hooks |
-| Modified function bytes | [libc.so](http://libc.so/) in memory | Checksum disk vs memory | Frida's Interceptor overwrites function prologues with trampolines (LDR X16; BR X16) to redirect execution |
-| /data/local/tmp/re.frida.server | Filesystem | File existence check | Directory created by frida-server to store temporary files, gadgets, and agent libraries |
-| frida-server process | /proc | Process name enumeration | The daemon process running with root privileges that handles injection and communication |
