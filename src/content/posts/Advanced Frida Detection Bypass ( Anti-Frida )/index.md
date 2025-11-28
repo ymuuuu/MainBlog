@@ -1,18 +1,25 @@
 ---
 title: "Advanced Frida Detection Bypass ( Anti-Frida )"
-published: 2025-11-27
-description: "To be changed"
-tags: ["ios", "mobile", "android","frida", "hook", "advanced", "bypass", "native"]
+published: 2025-11-28
+description: "A comprehensive guide to bypassing advanced Frida detection mechanisms in Android apps, including port detection, memory maps artifact scanning, and direct syscall hooking techniques."
+tags: ["android", "mobile", "frida", "reverse-engineering", "anti-frida", "bypass", "native", "hooking", "security"]
 category: "Mobile"
 image: ""
 ---
 
-In this noob friendly writeup, I will explain and share some of the advanced Frida detection I have faced during my last pentest engagments, however, due to confiednlty of the apps, we will use a open source app which I found very matching to some of these advanved bypasses I found.
-you can found it repo here
-<https://github.com/fatalSec/android_in_app_protections/blob/main/adv_frida.apk>
+*( بِسْمِ اللَّـهِ الرَّحْمَـٰنِ الرَّحِيمِ )*
 
-another useful source is this one
-<https://darvincitech.wordpress.com/2019/12/23/detect-frida-for-android/>
+:::caution
+FreePalestine
+:::
+
+---
+
+# Introduction
+
+In this noob-friendly writeup, I will explain and share some of the **advanced Frida detection techniques** I have faced during my last pentest engagements. However, due to confidentiality of the apps, we will use an open-source app which I found very matching to some of these advanced bypasses I encountered.
+
+> **Sample APK**: [adv_frida_apk](https://github.com/fatalSec/android_in_app_protections/blob/main/adv_frida.apk)
 
 ---
 
@@ -23,53 +30,31 @@ I made them into flows, comparios, Q&A to make them easier to understand.
 
 ## 1. Java Level vs Native Level vs Low Level
 
+First, we need to understand the 3 different levels when dealing with Android Apps.
+
 ### The Three Layers of Android
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-                    ANDROID APPLICATION LAYERS                                
-├─────────────────────────────────────────────────────────────────────────────┤
-                                                                             
-   ┌─────────────────────────────────────────────────────────────────────┐   
-                         JAVA LEVEL (Dalvik/ART)                           
-                                                                           
-      • Your MainActivity.java, Activities, Services                       
-      • Android SDK APIs (android.*, java.*)                              
-      • Runs in Android Runtime (ART) - interpreted/JIT compiled          
-      • DEX bytecode (.dex files inside APK)                                                                                                              
-      Example: String password = editText.getText().toString();           
-   └─────────────────────────────────────────────────────────────────────┘   
-                                                                            
-                JNI (Java Native Interface)                  
-                              ▼                                              
-   ┌─────────────────────────────────────────────────────────────────────┐   
-                         NATIVE LEVEL (C/C++)                              
-                                                                           
-      • .so libraries (libnative-lib.so, libc.so)                        
-      • Compiled ARM64/ARM32 machine code                                 
-      • Direct memory access (pointers)                                   
-      • NDK (Native Development Kit) code                                 
-      • libc.so = C standard library (printf, malloc, open, read)         
-                                                                           
-      Example: int fd = open("/proc/self/maps", O_RDONLY);                
-   └─────────────────────────────────────────────────────────────────────┘   
-                                                                            
-                System Calls (syscall/SVC #0)                
-                              ▼                                              
-   ┌─────────────────────────────────────────────────────────────────────┐   
-                         LOW LEVEL (Kernel)                                
-                                                                           
-      • Linux Kernel system calls                                         
-      • Direct hardware interaction                                       
-      • Process/memory/file management                                    
-      • Cannot be bypassed from userspace                                 
-                                                                           
-      Example: SVC #0 with x8=56 (openat syscall)                         
-   └─────────────────────────────────────────────────────────────────────┘   
-                                                                             
-└─────────────────────────────────────────────────────────────────────────────┘
+### Java Level (Dalvik/ART)
 
-```
+The topmost layer where your `MainActivity.java`, Activities, and Services live. This layer uses Android SDK APIs (`android.*`, `java.*`) and runs in the Android Runtime (ART) as interpreted or JIT-compiled DEX bytecode (`.dex` files inside the APK).
+
+**Example:** `String password = editText.getText().toString();`
+
+---
+
+### Native Level (C/C++)
+
+Connected to Java via **JNI (Java Native Interface)**. This layer consists of `.so` libraries (like `libnative-lib.so`, `libc.so`) containing compiled ARM64/ARM32 machine code. It provides direct memory access through pointers and is developed using the NDK (Native Development Kit). The `libc.so` is the C standard library containing functions like `printf`, `malloc`, `open`, `read`.
+
+**Example:** `int fd = open("/proc/self/maps", O_RDONLY);`
+
+---
+
+### Low Level (Kernel)
+
+Accessed from Native level via **System Calls** (`syscall`/`SVC #0`). This is the Linux Kernel handling direct hardware interaction, process/memory/file management. **Cannot be bypassed from userspace.**
+
+**Example:** `SVC #0` with `x8=56` (openat syscall)
 
 ### How They Communicate
 
@@ -88,52 +73,9 @@ I made them into flows, comparios, Q&A to make them easier to understand.
 
 When you run `frida -U -f com.app.target -l script.js`, here's what happens:
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-                    FRIDA INJECTION & ARTIFACTS                               
-├─────────────────────────────────────────────────────────────────────────────┤
-                                                                             
-  STEP 1: frida-server receives command from PC                             
-          └── Listening on port 27042 (default port)          
-                                                                             
-  STEP 2: frida-server spawns/attaches to target process                    
-          └── Uses ptrace() to gain control                                 
-                                                                             
-  STEP 3: Injects frida-agent-64.so into target process                     
-          ┌────────────────────────────────────────────────────────────┐    
-            ARTIFACTS CREATED IN MEMORY:                                  
-                                                                          
-            • frida-agent-64.so    - Main Frida agent library            
-            • frida-gadget.so      - Embedded gadget (spawn mode)        
-            • libfrida-gum.so      - Frida's hooking engine              
-            • [anon:gum-js-loop]   - V8 JavaScript runtime memory        
-            • [anon:frida-*]       - Various Frida allocations           
-                                                                          
-            These appear in /proc/self/maps (We will learn this file later)   
-          └────────────────────────────────────────────────────────────┘    
-                                                                             
-  STEP 4: Frida's Gum engine hooks functions                                
-          ┌────────────────────────────────────────────────────────────┐    
-            HOW HOOKING WORKS (Native Level):                             
-                                                                          
-            BEFORE HOOK:                                                  
-            connect():  FF 43 00 91    ; original instruction            
-                        FD 7B BF A9    ; original prologue               
-                                                                          
-            AFTER HOOK:                                                   
-            connect():  50 00 00 58    ; LDR X16, #8                     
-                        00 02 1F D6    ; BR X16 (jump to trampoline)     
-                        XX XX XX XX    ; address of hook handler         
-                                                                          
-            Memory is MODIFIED!                  
-          └────────────────────────────────────────────────────────────┘    
-                                                                             
-  STEP 5: Your JavaScript runs in V8 engine inside the process             
-          └── Java.perform() uses ART internals for Java hooks             
-                                                                             
-└─────────────────────────────────────────────────────────────────────────────┘
+When you run Frida, the **frida-server** first receives commands from your PC while listening on port 27042 (the default port). It then spawns or attaches to the target process using `ptrace()` to gain control. Next, it injects **frida-agent-64.so** into the target process, which creates several artifacts in memory: `frida-agent-64.so` (main Frida agent library), `frida-gadget.so` (embedded gadget for spawn mode), `libfrida-gum.so` (Frida's hooking engine), `[anon:gum-js-loop]` (V8 JavaScript runtime memory), and various `[anon:frida-*]` allocations. These all appear in `/proc/self/maps` (we will learn about this file later).
 
-```
+Frida's **Gum engine** then hooks functions by modifying memory. For example, before hooking, `connect()` might have original instructions like `FF 43 00 91` and `FD 7B BF A9`. After hooking, these are replaced with `50 00 00 58` (`LDR X16, #8`), `00 02 1F D6` (`BR X16` - jump to trampoline), followed by the address of the hook handler. This means **memory is modified**. Finally, your JavaScript runs in the V8 engine inside the process, where `Java.perform()` uses ART internals for Java hooks.
 
 ### Java Runtime Side (ART)
 
@@ -143,7 +85,7 @@ When you use `Java.perform()` in Frida:
 Java.perform(function() {
     var Activity = Java.use("android.app.Activity");
     Activity.onCreate.implementation = function(bundle) {
-        console.log("onCreate hooked!");
+        console.log("onCreate hooked");
         this.onCreate(bundle);
     };
 });
@@ -166,7 +108,7 @@ When you use `Interceptor.attach()` in Frida:
 
 ```jsx
 Interceptor.attach(Module.findExportByName("libc.so", "open"), {
-    onEnter: function(args) { console.log("open called!"); }
+    onEnter: function(args) { console.log("open called"); }
 });
 
 ```
@@ -183,120 +125,52 @@ These are the artificats that Frida leaves behind when hooking the app APIs or w
 
 | Artifact | Location | Detection Method | Description |
 | --- | --- | --- | --- |
-| Port 27042 listening | Network | `connect()` to localhost:27042 | frida-server binds to this default TCP port to receive commands from the Frida client on your PC |
-| frida-agent-64.so | /proc/self/maps | String search for "frida" | The main Frida agent library injected into the target process to execute JavaScript hooks |
-| Modified function bytes | libc.so in memory | Checksum disk vs memory | Frida's Interceptor overwrites function prologues with trampolines (LDR X16; BR X16) to redirect execution |
-| /data/local/tmp/re.frida.server | Filesystem | File existence check | Directory created by frida-server to store temporary files, gadgets, and agent libraries |
-| frida-server process | /proc | Process name enumeration | The daemon process running with root privileges that handles injection and communication |
+| Port `27042` listening | Network | `connect()` to localhost:27042 | frida-server binds to this default TCP port to receive commands from the Frida client on your PC |
+| `frida-agent-64.so` | /proc/self/maps | String search for "frida" | The main Frida agent library injected into the target process to execute JavaScript hooks |
+| Modified function bytes | `libc.so` in memory | Checksum disk vs memory | Frida's Interceptor overwrites function prologues with trampolines (LDR X16; BR X16) to redirect execution |
+| `/data/local/tmp/re.frida.server` | Filesystem | File existence check | Directory created by frida-server to store temporary files, gadgets, and agent libraries |
 
 ---
 
 # Overview
 
-**3 anti-frida detection mechanisms** implemented in `libantifrida.so`:
+This app has **3 anti-frida detection mechanisms** implemented in its native library `libantifrida.so`:
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-                    3 ANTI-FRIDA CHECKS                              
-├─────────────────────────────────────────────────────────────────────┤
-                                                                     
-  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐             
-     CHECK 1          CHECK 2          CHECK 3                
-                                                              
-    Frida Port         Frida                 libc                  
-    Detection         Artifacts            Checksum                
-    (27042)           in maps              Detection               
-  └─────────────┘    └─────────────┘    └─────────────┘             
-                                                                  
-         ▼                  ▼                  ▼                     
-  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐             
-     BYPASS:          BYPASS:          BYPASS:                
-       Hook             Redirect            Remove                   
-      connect()         maps file           libc.so                  
-    change port         hide frida          from maps                
-  └─────────────┘    └─────────────┘    └─────────────┘             
-                                                                     
-└─────────────────────────────────────────────────────────────────────┘
-```
+**Check 1: Frida Port Detection (27042)** — Detects Frida by attempting to connect to port `27042`.
 
-**Key Insight**: Anti-frida code often lives in the **Native Level** because:
+**Check 2: Frida Artifacts in maps** — Scans `/proc/self/maps` for Frida-related strings.
+
+**Check 3: libc Checksum Detection** — Compares in-memory `libc` bytes against to the one in the disk to detect tampering. (We will cover this later in another blog).
+
+:::tip
+
+Anti-frida code often lives in the **Native Level** because:
 
 1. Harder to reverse engineer than Java (no easy decompilation)
 2. Can use direct syscalls to bypass Frida's libc hooks
 3. Lower-level = more control, fewer abstraction layers to trust
 
+:::
 ---
 
 # Check 1: Frida Port Detection (Port 27042)
 
-> Technical Deep Dive: This detection exploits the fact that frida-server binds to TCP port 27042 on localhost (127.0.0.1) by default. The detection code uses the POSIX socket API—specifically the connect() libc function—which internally triggers the SYS_connect syscall. On ARM64 Android, the anti-frida library calls connect() with a sockaddr_in structure containing sin_family = AF_INET (2), sin_addr = 127.0.0.1, and sin_port = 27042 in network byte order. Network byte order is big-endian, so port 27042 (hex 0x69A2) becomes 0xA269 when the bytes are swapped. The detection reads the port from sockaddr_in at offset +2 bytes from the structure base (after the 2-byte sin_family field). If connect() returns 0 (success), it means something is listening on that port—likely Frida. Our bypass hooks connect() in libc.so, intercepts the call, reads the port from the sockaddr structure using pointer arithmetic, converts it from network to host byte order using ((port & 0xff) << 8) | (port >> 8), and if it matches 27042, we change it to a random port like 1337, causing the connection to fail harmlessly.
->
+## Technical Deep Dive
 
-## The Issue
+>This detection exploits the fact that `frida-server` binds to **TCP port 27042** on localhost (`127.0.0.1`) by default. The detection code uses the `connect()` libc function—which internally triggers the `SYS_connect` syscall. On ARM64 Android, the anti-frida library calls `connect()` with a `sockaddr_in` structure containing `sin_family = AF_INET (2)`, `sin_addr = 127.0.0.1`, and `sin_port = 27042` in network byte order. Network byte order is big-endian, so port 27042 (hex `0x69A2`) becomes `0xA269` when the bytes are swapped. The detection reads the port from `sockaddr_in` at offset +2 bytes from the structure base (after the 2-byte `sin_family` field). If `connect()` returns 0 (success), it means something is listening on that port—likely Frida.
 
-Frida server by default listens on **TCP port 27042** on localhost. Anti-frida code exploits this by attempting to connect to this port.
+## How the detection works
 
-## Thinking Process
+The anti-frida code first creates a TCP socket using `socket(AF_INET, SOCK_STREAM, 0)`. It then fills a `sockaddr_in` structure with `sin_family = AF_INET`, `sin_addr = 127.0.0.1`, and `sin_port = 27042` (in network byte order). Next, it calls `connect(fd, &addr, sizeof(addr))` to attempt a connection. If `connect()` returns 0 (success), `Frida` is detected because something is listening on that port. If it returns -1 (fail), no Frida is detected.
 
-### How the detection works
-
-```
-┌────────────────────────────────────────────────────────────────────┐
-                    PORT DETECTION FLOW                              
-├────────────────────────────────────────────────────────────────────┤
-                                                                    
-   Anti-Frida Code                                                  
-                                                                   
-         ▼                                                          
-   ┌─────────────────────────────────────┐                         
-    socket(AF_INET, SOCK_STREAM, 0)       Create TCP socket      
-   └─────────────────────────────────────┘                         
-                                                                   
-         ▼                                                          
-   ┌─────────────────────────────────────┐                         
-    Fill sockaddr_in:                                            
-      sin_family = AF_INET                                       
-      sin_addr   = 127.0.0.1                                     
-      sin_port   = 27042 (network order)                         
-   └─────────────────────────────────────┘                         
-                                                                   
-         ▼                                                          
-   ┌─────────────────────────────────────┐                         
-    connect(fd, &addr, sizeof(addr))                             
-   └─────────────────────────────────────┘                         
-                                                                   
-         ├────────────────┬───────────────┐                        
-         ▼                ▼                                       
-   ┌──────────┐    ┌──────────┐                                  
-    Returns 0       Returns -1                                  
-    SUCCESS         FAIL                                      
-   └──────────┘    └──────────┘                                  
-                                                                
-         ▼                ▼                                       
-   ┌──────────┐    ┌──────────┐                                  
-     FRIDA          NO                                       
-    DETECTED!       FRIDA                                     
-   └──────────┘    └──────────┘                                  
-                                                                    
-└────────────────────────────────────────────────────────────────────┘
-
-```
-
-### Why this works
-
-- Frida server runs on device and listens on `127.0.0.1:27042`
-- Any app can try to connect locally
-- If connection succeeds → Frida server is running
-
-## Questions & Answers
-
-**Q: Why port 27042?**
-
-> A: This is Frida's default port. The frida-server binary listens on this port waiting for frida client connections from PC.
->
+:::caution
+`27042` is **not** the **only** port that a `developer` can search for, so you need to read/understand the code to figure out if there is any `port` configured by the devleopered to be scanned as well.
+:::
 
 ## The Bypass
 
+> Our bypass hooks `connect()` in `libc.so`, intercepts the call, reads the port from the sockaddr structure using pointer arithmetic, converts it from network to host byte order using `((port & 0xff) << 8) | (port >> 8)`, and if it matches 27042, we change it to a random port like 1337, causing the connection to fail harmlessly.
+>
 ### Code
 
 ```jsx
@@ -332,67 +206,26 @@ Interceptor.replace(connectPtr, new NativeCallback(function(fd, addr, len) {
     return retval;
 }, 'int', ['int', 'pointer', 'int']));
 
-```
-
-### Bypass Flow
-
-```
-┌────────────────────────────────────────────────────────────────────┐
-                    BYPASS FLOW                                      
-├────────────────────────────────────────────────────────────────────┤
-                                                                    
-   Anti-Frida Code                                                  
-                                                                   
-         ▼                                                          
-   connect(fd, addr{port=27042}, len)                               
-                                                                   
-         ▼                                                          
-   ┌─────────────────────────────────────┐                         
-        OUR FRIDA HOOK INTERCEPTS                                
-                                                                 
-     if (port == 27042) {                                        
-         port = 27043;  // Change it!                            
-     }                                                           
-   └─────────────────────────────────────┘                         
-                                                                   
-         ▼                                                          
-   connect(fd, addr{port=27043}, len)   ← Modified!                
-                                                                   
-         ▼                                                          
-   Returns -1 (nothing on 27043)                                    
-                                                                   
-         ▼                                                          
-   App thinks: "No Frida detected"                                
-                                                                    
-└────────────────────────────────────────────────────────────────────┘
 
 ```
 
-### Understanding Byte Order
+### Understanding The Byte Order
 
-```
-Network Byte Order (Big-Endian) vs Host Byte Order (Little-Endian)
+>Port `27042` in hexadecimal is `0x69A2`. In **network order (big-endian)**, bytes are stored as `0x69 0xA2` with the high byte first. In **host order (little-endian)**, bytes are stored as `0xA2 0x69` with the low byte first. The conversion formula `((port & 0xff) << 8) | (port >> 8)` works by: (1) extracting the low byte with `port & 0xff`, (2) shifting it to the high position with `<< 8`, (3) extracting the high byte with `port >> 8`, and (4) combining both bytes with `|`. The result is that the bytes are swapped.
 
-Port 27042 = 0x69A2
-
-Network order: 0x69 0xA2  (high byte first)
-Host order:    0xA2 0x69  (low byte first)
-
-Conversion: ((port & 0xff) << 8) | (port >> 8)
-            Swaps the two bytes
-
-```
+:::note
+I hate assembly.
+:::
 
 ---
 
 # Check 2: Frida Artifacts Detection (/proc/maps)
 
-> Technical Deep Dive: This detection abuses the Linux /proc filesystem, specifically /proc/self/maps, which is a virtual file provided by the kernel that lists all memory-mapped regions of the current process. Each line contains: start_addr-end_addr permissions offset dev inode pathname. When Frida injects frida-agent-64.so into the target process, new memory regions appear with telltale names like frida-agent, frida-gadget, libfrida-gum.so, or anonymous mappings named [anon:gum-js-loop]. The anti-frida library bypasses libc entirely and uses direct syscalls via SVC #0 (ARM64 supervisor call instruction) to read this file—this is why we can't just hook open() or fopen() in libc. The library executes openat (syscall 56) with register x0=AT_FDCWD (-100), x1=pointer to "/proc/self/maps", x2=O_RDONLY. We find these syscall sites by disassembling libantifrida.so using Radare2 with /asj svc to locate all SVC #0 instructions and their offsets (e.g., {"addr":3868,"name":"openat","sysnum":56}). Our bypass hooks these specific offsets using Interceptor.attach(base_addr.add(offset), {...}). In the onEnter callback, we check if x1 contains "self/maps" and redirect it to /data/local/tmp/maps—a fake maps file we created that contains no Frida artifacts.
->
+## Technical Deep Dive
 
----
+> This detection abuses the Linux `/proc` filesystem, specifically `/proc/self/maps`, which is a virtual file provided by the kernel that lists all memory-mapped regions of the current process. Each line contains: `start_addr-end_addr permissions offset dev inode pathname`. When Frida injects `frida-agent-64.so` into the target process, new memory regions appear with telltale names like `frida-agent`, `frida-gadget`, `libfrida-gum.so`, or anonymous mappings named `[anon:gum-js-loop]`. The anti-frida library bypasses libc entirely and uses direct syscalls via `SVC #0` (ARM64 supervisor call instruction) to read this file—this is why we can't just hook `open()` or `fopen()` in libc. The library executes `openat` (syscall 56) with register `x0=AT_FDCWD (-100)`, `x1=pointer to "/proc/self/maps"`, `x2=O_RDONLY`. We find these syscall sites by disassembling `libantifrida.so` using Radare2 with `/asj svc` to locate all `SVC #0` instructions and their offsets (e.g., `{"addr":3868,"name":"openat","sysnum":56}`).
 
-## Understanding /proc Files
+Before understanding more about how this detection works, we need to understand more about `proc` and about the `wrappers` and `syscalls`.
 
 ### What is /proc?
 
@@ -402,290 +235,137 @@ The `/proc` filesystem is a **virtual filesystem** in Linux that doesn't exist o
 
 `/proc/self/maps` shows all memory regions mapped into the current process:
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-                    /proc/self/maps FORMAT                                    
-├─────────────────────────────────────────────────────────────────────────────┤
-                                                                             
-  ADDRESS RANGE      PERMS  OFFSET   DEV    INODE    PATHNAME                
-  ─────────────      ─────  ──────   ───    ─────    ────────                
-  749088f000-749098c000 r--p 00000000 fd:00 123456 /system/lib64/libc.so    
-  749098c000-7490abf000 r-xp 000fd000 fd:00 123456 /system/lib64/libc.so    
-  7490abf000-7490ac3000 rw-p 00230000 fd:00 123456 /system/lib64/libc.so    
-  7b5000000-7b5100000  r-xp 00000000 00:00 0       [anon:frida-agent]       
-                                                                             
-  PERMISSIONS MEANING:                                                       
-  r = readable     w = writable     x = executable     p = private          
-  s = shared                                                                 
-                                                                             
-  WHY IT'S USEFUL:                                            
-  • Shows EVERY loaded library (including frida-agent-64.so)               
-  • Shows anonymous mappings (including [anon:gum-js-loop])                
-  • Cannot be hidden from kernel—it always shows the truth                  
-          
-                                                                             
-└─────────────────────────────────────────────────────────────────────────────┘
+- **ADDRESS RANGE** (e.g., `749088f000-749098c000`)
+- **PERMS** (permissions)
+- **OFFSET**, **DEV** (device)
+- **INODE**, and **PATHNAME**.
 
-```
+For example: `749088f000-749098c000 r--p 00000000 fd:00 123456 /system/lib64/libc.so`.
+The permissions field uses the following notation: `r` = readable, `w` = writable, `x` = executable, `p` = private, and `s` = shared. This file is useful because it shows **every loaded library** (including `frida-agent-64.so`), shows **anonymous mappings** (including `[anon:gum-js-loop]`), and cannot be hidden from the kernel—it always shows the truth.
 
 ### /proc/self/status - Process Status File
 
 `/proc/self/status` provides detailed process information in a human-readable format:
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-                    /proc/self/status CONTENTS                                
-├─────────────────────────────────────────────────────────────────────────────┤
-                                                                             
-  Name:    com.example.app                    ← Process name                 
-  State:   S (sleeping)                       ← Current state                
-  Tgid:    12345                              ← Thread group ID (PID)        
-  Pid:     12345                              ← Process ID                   
-  PPid:    1234                               ← Parent process ID            
-  TracerPid: 0                                ← WHO IS TRACING US?           
-  Uid:     10123   10123   10123   10123      ← User IDs                     
-  Gid:     10123   10123   10123   10123      ← Group IDs                    
-  VmSize:  1234567 kB                         ← Virtual memory size          
-  VmRSS:   12345 kB                           ← Resident memory              
-  Threads: 15                                 ← Number of threads            
-                                                                             
-  ANTI-DEBUG DETECTION:                                                      
-  • TracerPid: If non-zero, something is debugging/tracing this process!    
-  • When Frida attaches via ptrace: TracerPid = frida-server's PID             
-                                                                             
-└─────────────────────────────────────────────────────────────────────────────┘
+- **Name** (`com.example.app`) which is the process name
+- **State** (`S (sleeping)`) showing the current state
+- **Tgid** (`12345`) the thread group ID (PID)
+- **Pid** (`12345`) the process ID
+- **PPid** (`1234`) the parent process ID
+- **TracerPid** (`0`) indicating who is tracing the process
+- **Uid** (`10123 10123 10123 10123`) the user IDs
+- **Gid** (`10123 10123 10123 10123`) the group IDs
+- **VmSize** (`1234567 kB`) the virtual memory size
+- **VmRSS** (`12345 kB`) the resident memory
+- **Threads** (`15`) the number of threads.
 
-```
-
----
-
-## Wrappers vs Syscalls: Why Direct Syscalls Matter
+:::tip
+For **debugging/frida detection**, the key field is `TracerPid`: if it's non-zero, something is debugging/tracing this process. When Frida attaches via ptrace, `TracerPid` will equal frida-server's PID.
+:::
 
 ### What is a Wrapper Function?
 
 A **wrapper** is a convenient function in `libc.so` that prepares arguments and calls the kernel:
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-                    WRAPPER FUNCTION FLOW                                     
-├─────────────────────────────────────────────────────────────────────────────┤
-                                                                             
-  YOUR CODE                    LIBC.SO (WRAPPER)              KERNEL         
-  ──────────                   ─────────────────              ──────         
-                                                                             
-  open("/proc/maps", 0)  ──►  libc's open() function:        syscall        
-                                                             handler        
-                               ├─ Validate arguments                        
-                               ├─ Set up registers:                         
-                                  x0 = AT_FDCWD                            
-                                  x1 = "/proc/maps"                        
-                                  x2 = O_RDONLY                            
-                                  x8 = 56 (syscall number)                 
-                                                                           
-                               └─ SVC #0  ────────────────────┘              
-                                                                             
-  FRIDA CAN HOOK HERE! ───────►◄──────── BUT NOT HERE (kernel)             
-                                                                             
-└─────────────────────────────────────────────────────────────────────────────┘
-
-```
+When your code calls `open("/proc/maps", 0)`, it goes through **libc.so's wrapper function** before reaching the kernel. The wrapper performs several tasks: it validates the arguments, then sets up the CPU registers with the appropriate values—`x0 = AT_FDCWD`, `x1 = "/proc/maps"`, `x2 = O_RDONLY`, and `x8 = 56` (the syscall number). Finally, it executes the `SVC #0` instruction to trigger the kernel's syscall handler.
+`Frida` can hook the libc wrapper function, but it **cannot** hook inside the kernel itself.
 
 ### What is a Syscall?
 
-A **syscall** (system call) is the interface between userspace and the kernel. On ARM64 (it differs depending on the arch):
+A `syscall` (system call) is the interface between userspace and the kernel. On ARM64 (it differs depending on the arch):
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-                    SYSCALL MECHANISM (ARM64)                                 
-├─────────────────────────────────────────────────────────────────────────────┤
-                                                                             
-  REGISTERS FOR SYSCALL:                                                     
-  ┌────────────────────────────────────────────────────────────────────┐    
-    x8  = Syscall number (sys_num) (which kernel function to call)                  
-    x0  = 1st argument                                                    
-    x1  = 2nd argument                                                    
-    x2  = 3rd argument                                                    
-    x3  = 4th argument                                                    
-    x4  = 5th argument                                                    
-    x5  = 6th argument                                                    
-                                                                          
-    SVC #0  ← Supervisor Call instruction (triggers kernel mode)          
-                                                                          
-    x0  = Return value (after syscall returns)                            
-  └────────────────────────────────────────────────────────────────────┘    
-                                                                             
-  COMMON SYSCALLS (sys_num):                                                           
-   Number  Name    Purpose                                              
-     56    openat  Open a file relative to directory fd                 
-     57    close   Close a file descriptor                              
-     62    lseek   Move file read/write position                        
-     63    read    Read bytes from file descriptor                      
-     64    write   Write bytes to file descriptor                       
-                                                                             
-└─────────────────────────────────────────────────────────────────────────────┘
+On `ARM64`, syscalls use specific registers:
 
-```
+- `x8` holds the syscall number (which kernel function to call)
+- `x0-x5` hold the arguments (1st through 6th), and the `SVC #0` instruction (Supervisor Call) triggers kernel mode. After the syscall returns
+- `x0` contains the return value.
+
+> **Resource:**: [syscalls.md](https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md#arm64-64_bit)
+
+Common syscalls include: `56 (openat)` to open a file relative to a directory fd, `57 (close)` to close a file descriptor, `62 (lseek)` to move the file read/write position, `63 (read)` to read bytes from a file descriptor, and `64 (write)` to write bytes to a file descriptor.
+
+:::warning
+do not forget to check for the arch you are using :"D
+:::
 
 ### Why Anti-Frida Code Uses Direct Syscalls
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-                    WHY BYPASS LIBC WRAPPERS?                                 
-├─────────────────────────────────────────────────────────────────────────────┤
-                                                                             
-  NORMAL APP (USES LIBC WRAPPER):                                           
-  ┌─────────────────────────────────────────────────────────────────────┐   
-    int fd = open("/proc/self/maps", O_RDONLY);                           
-                                                                          
-    Code ──► libc.so::open() ──► SVC #0 ──► Kernel                       
-                    ▲                                                     
-                                                                         
-             FRIDA HOOKS HERE!                                            
-             Can see arguments, modify them, log calls                    
-  └─────────────────────────────────────────────────────────────────────┘   
-                                                                             
-  ANTI-FRIDA CODE (DIRECT SYSCALL):                                         
-  ┌─────────────────────────────────────────────────────────────────────┐   
-    // In assembly:                                                       
-    mov x8, #56           // syscall number for openat                    
-    mov x0, #-100         // AT_FDCWD                                     
-    ldr x1, ="/proc/self/maps"                                           
-    mov x2, #0            // O_RDONLY                                     
-    svc #0                // Direct to kernel!                            
-                                                                          
-    Code ──────────────────► SVC #0 ──► Kernel                           
-                                ▲                                         
-                                                                         
-             FRIDA CANNOT HOOK BY NAME!                                   
-             No function name, just raw instruction                       
-             Must hook the SVC instruction itself at specific offset      
-  └─────────────────────────────────────────────────────────────────────┘   
-                                                                             
-  SOLUTION: Find SVC #0 offsets in libantifrida.so using Radare2:           
-            r2 libantifrida.so                                              
-            /asj svc    # Search for all SVC instructions                   
-            Output: {"addr":3868,"name":"openat","sysnum":56}              
-            Hook: Interceptor.attach(base.add(3868), {...})                 
-                                                                             
-└─────────────────────────────────────────────────────────────────────────────┘
+**Normal App (Uses libc Wrapper):**
 
+When a normal app calls `int fd = open("/proc/self/maps", O_RDONLY);`, the execution flow is: `Code → libc.so::open() → SVC #0 → Kernel`. Frida hooks at the `libc.so::open()` level, where it can see arguments, modify them, and log calls.
+
+**Anti-Frida Code (Direct Syscall):**
+
+Anti-frida code bypasses libc entirely by using inline assembly:
+
+```asm
+mov x8, #56           // syscall number for openat
+mov x0, #-100         // AT_FDCWD
+ldr x1, ="/proc/self/maps"
+mov x2, #0            // O_RDONLY
+svc #0                // Direct to kernel
 ```
 
-### Summary
+The execution flow becomes: `Code → SVC #0 → Kernel`. Frida **cannot hook by name** because there is no function name—just a raw instruction. You must hook the SVC instruction itself at a specific offset.
 
-| Concept | Explanation |
-| --- | --- |
-| **SVC** | Supervisor Call — ARM64 instruction to enter kernel mode |
-| **#0** | Immediate value (Linux ignores it, always 0) |
-| **x8 register** | Contains syscall number (56=openat, 63=read, etc.) |
-| **x0-x5 registers** | Contain syscall arguments |
-| **Why hook it?** | Anti-frida code uses direct `SVC #0` to bypass libc — no function name exists to hook, so we hook the raw instruction at its memory offset |
+so the solution was to find `SVC #0` offsets in `libantifrida.so` using Radare2:
 
-| Register | Value | Meaning |
-| --- | --- | --- |
-| x0 (dfd) | -100 (AT_FDCWD) | "Use current directory" — but ignored for absolute paths |
-| x1 (filename) | "/proc/self/maps" | Absolute path to open |
-| x2 (flags) | 0 (O_RDONLY) | Open for reading only |
+```bash
+r2 libantifrida.so
+/asj svc    # Search for all SVC instructions
+```
 
----
+Example output: `{"addr":3868,"name":"openat","sysnum":56}`
 
-## The Issue
+Then hook using: `Interceptor.attach(base.add(3868), {...})`
+
+:::warning
+do not forget the base address :"D
+:::
+
+## How the detection works
 
 When Frida injects into a process, it loads libraries and creates memory regions that appear in `/proc/self/maps`. Anti-frida code scans this file looking for telltale strings.
-
-## Thinking Process
 
 ### What Frida leaves behind in memory maps
 
 ```
-┌────────────────────────────────────────────────────────────────────┐
-             /proc/self/maps WITH FRIDA RUNNING                      
-├────────────────────────────────────────────────────────────────────┤
-                                                                    
-  Normal entries...                                                 
-  7a1234000-7a1235000 r-xp  /system/lib64/libc.so                  
-  ...                                                               
-                                                                    
-  ╔════════════════════════════════════════════════════════════╗   
-  ║  FRIDA ARTIFACTS - THESE REVEAL FRIDA IS PRESENT!          ║   
-  ╠════════════════════════════════════════════════════════════╣   
-  ║  7b5000000-7b5100000 r-xp  frida-agent-64.so               ║   
-  ║  7b5100000-7b5200000 rw-p  frida-agent-64.so               ║   
-  ║  7b6000000-7b6001000 r--p  frida-gadget.so                 ║   
-  ║  7b7000000-7b7010000 rw-p  [anon:gum-js-loop]              ║   
-  ║  7b8000000-7b8100000 r-xp  libfrida-gum.so                 ║   
-  ╚════════════════════════════════════════════════════════════╝   
-                                                                    
-└────────────────────────────────────────────────────────────────────┘
+  Normal entries...
+  7a1234000-7a1235000 r-xp  /system/lib64/libc.so
+  ...
+
+  ╔════════════════════════════════════════════════════════════╗
+  ║  FRIDA ARTIFACTS - THESE REVEAL FRIDA IS PRESENT           ║
+  ╠════════════════════════════════════════════════════════════╣
+  ║  7b5000000-7b5100000 r-xp  frida-agent-64.so               ║
+  ║  7b5100000-7b5200000 rw-p  frida-agent-64.so               ║
+  ║  7b6000000-7b6001000 r--p  frida-gadget.so                 ║
+  ║  7b7000000-7b7010000 rw-p  [anon:gum-js-loop]              ║
+  ║  7b8000000-7b8100000 r-xp  libfrida-gum.so                 ║
+  ╚════════════════════════════════════════════════════════════╝
+
 
 ```
 
 ### Detection Flow
 
-```
-┌────────────────────────────────────────────────────────────────────┐
-                ARTIFACTS DETECTION FLOW                             
-├────────────────────────────────────────────────────────────────────┤
-                                                                    
-   Anti-Frida Code                                                  
-                                                                   
-         ▼                                                          
-   ┌─────────────────────────────────────┐                         
-    openat("/proc/self/maps")                                    
-   └─────────────────────────────────────┘                         
-                                                                   
-         ▼                                                          
-   ┌─────────────────────────────────────┐                         
-    read() line by line                                          
-   └─────────────────────────────────────┘                         
-                                                                   
-         ▼                                                          
-   ┌─────────────────────────────────────┐                         
-    Search for strings:                                          
-      - "frida"                                                  
-      - "gadget"                                                 
-      - "gum-js-loop"                                            
-      - "frida-agent"                                            
-   └─────────────────────────────────────┘                         
-                                                                   
-         ├──────────────┬────────────────┐                         
-         ▼              ▼                                         
-   ┌──────────┐   ┌──────────┐                                   
-     FOUND!        NOT FOUND                                    
-   └──────────┘   └──────────┘                                   
-                                                                
-         ▼              ▼                                         
-   ┌──────────┐   ┌──────────┐                                   
-     FRIDA          NO                                        
-    DETECTED!       FRIDA                                      
-   └──────────┘   └──────────┘                                   
-                                                                    
-└────────────────────────────────────────────────────────────────────┘
-
-```
-
-## Questions & Answers
-
-**Q: Why use `/proc/self/maps`?**
-
-> A: This special file shows ALL memory regions mapped into the current process. It's provided by the Linux kernel and always shows what's really loaded, so, triying to remove such file will cause the app even the system to crash
->
-
-**Q: What strings does anti-frida look for?**
-
-> A: Common ones include:
->
-> - `frida` - appears in frida library names
-> - `gadget` - [frida-gadget.so](http://frida-gadget.so/)
-> - `gum` - frida's Gum engine
-> - `agent` - [frida-agent.so](http://frida-agent.so/)
+>The **artifacts detection flow** works as follows: The anti-frida code first calls `openat("/proc/self/maps")` to open the memory maps file. It then uses `read()` to process the file line by line. For each line, it searches for suspicious strings including `"frida"`, `"gadget"`, `"gum-js-loop"`, and `"frida-agent"`. If any of these strings are **found**, Frida is **detected**. If **not found**, the app concludes there is no Frida present.
 
 ## The Bypass
 
-### Strategy 1
+Actually in here we got 2 Strategies, we will dive into each one of them alone. Lets see which one will work.
 
-1. Create a **fake maps file** without Frida entries
-2. When anti-frida opens `/proc/self/maps`, redirect to our fake file
+## Strategy 1
+
+>This  bypass hooks these specific offsets using `Interceptor.attach(base_addr.add(offset), {...})`. In the `onEnter` callback, we check if `x1` contains `"self/maps"` and redirect it to `/data/local/tmp/maps`—a fake maps file we created that contains no Frida artifacts.
+
+SO, we will:
+
+1. Run the app with `frida` attached, no scripts attached, dump the maps file.
+2. Transfer the `maps` file to your PC and `replace` all strings that has the string `frida`.
+3. Push back the `maps` file to `/data/local/tmp/maps` and give it `chmod 777`.
+4. `Spawn` the app with the solver `script` below.
+5. When anti-frida opens `/proc/self/maps`, redirect to our `fake` file.
 
 ### Code
 
@@ -704,165 +384,195 @@ case 56:
 
 ### Bypass Flow
 
-```
-┌────────────────────────────────────────────────────────────────────┐
-                    BYPASS FLOW                                      
-├────────────────────────────────────────────────────────────────────┤
-                                                                    
-   Anti-Frida Code                                                  
-                                                                   
-         ▼                                                          
-   openat("/proc/self/maps")                                        
-                                                                   
-         ▼                                                          
-   ┌─────────────────────────────────────┐                         
-        OUR FRIDA HOOK INTERCEPTS                                
-                                                                 
-     if (path contains "self/maps") {                            
-         path = "/data/local/tmp/maps";                          
-     }                                                           
-   └─────────────────────────────────────┘                         
-                                                                   
-         ▼                                                          
-   openat("/data/local/tmp/maps")  ← Redirected!                   
-                                                                   
-         ▼                                                          
-   ┌─────────────────────────────────────┐                         
-     FAKE MAPS FILE CONTENTS:                                    
-     (No frida strings!)                                         
-                                                                 
-     7a1234000-7a1235000 /system/libc.so                         
-     ... normal entries only ...                                 
-   └─────────────────────────────────────┘                         
-                                                                   
-         ▼                                                          
-   App searches for "frida" → NOT FOUND                             
-                                                                   
-         ▼                                                          
-   App thinks: "No Frida detected"                                
-                                                                    
-└────────────────────────────────────────────────────────────────────┘
+When the anti-frida code calls `openat("/proc/self/maps")`, our Frida hook intercepts the call. The hook checks if the path contains `"self/maps"`, and if so, redirects it to `"/data/local/tmp/maps"`. This causes the actual syscall to open our fake maps file instead.
+
+The **fake maps file contents** contain only normal entries with no Frida strings:
 
 ```
-
-**Q: Why can't we just search by module and hook directly?**
-
-> A: Because libantifrida.so doesn't exist in memory when our script starts. It's loaded later by the app at runtime.
->
-
-**Q: Why Direct Syscall Hooking is Necessary?**
-
-> Normal hooking by function name **won't work** because `libantifrida.so` uses **direct syscalls**, bypassing libc entirely!
->
-
-**Q: Why not just hook by function name like `openat`, `read`, `close`?**
-
-> A: Because anti-frida code doesn't call libc functions! It uses direct syscalls.
->
-
-**Q: What's the difference?**
-
-### Normal App (hookable)
-
-```
-App code → libc.so (openat function) → kernel syscall
-              ↑
-         Frida can hook here!
+7a1234000-7a1235000 /system/libc.so
+... normal entries only ...
 ```
 
-### Anti-Frida Code (NOT hookable by name)
+When the app searches for `"frida"` in the redirected file, it finds **nothing**. The app concludes: *"No Frida detected"*.
 
-```
-App code → SVC #0 instruction (direct syscall) → kernel
-              ↑
-         No function to hook! Must hook the SVC instruction itself.
-```
+>However, this is not what happened :"(, the app kept `crashing`, or stuck at the `splash` screen. Thats why we made `Strategy 2` :"D
+> My thought is this is happening as we are forcing the system to read the maps file  from another directory, while the frida logs show that it does open it, it takes too long to show that it closed it, which why something went wrong inside while reading/parsing it.
 
-## Strategy 2: Renaming Frida Artifacts (frida → brida)
+---
 
-<https://github.com/frida/frida-core/issues/310>
+## Strategy 2
 
-Goal: evade basic Frida artifact checks (e.g. `/proc/pid/maps`, `/data/local/tmp/re.frida.server`) by patching the Android `frida-server` binary so all visible agent/server names become custom (`brida-bgent-*`).
+>In this bypass we evade basic Frida artifact checks (e.g. `/proc/pid/maps`, `/data/local/tmp/re.frida.server`) by patching the Android `frida-server` binary so all visible agent/server names become custom (`brida-bgent-*`).
 
-## 1. Download and unpack frida-server
+I found this `article` with this `github` issue which talks about this idea/solution very helpful.
+
+- [Detect Frida for Android - DarvinciTech](https://darvincitech.wordpress.com/2019/12/23/detect-frida-for-android/)
+- [Github Issue](https://github.com/frida/frida-core/issues/310)
+
+### 1. Download and unpack frida-server
 
 Pick the right version/arch and unpack:
 
-`wget <https://github.com/frida/frida/releases/download/16.5.6/frida-server-16.5.6-android-arm64.xz> unxz frida-server-16.5.6-android-arm64.xz mv frida-server-16.5.6-android-arm64 frida-server chmod +x frida-server`
+```bash
+wget https://github.com/frida/frida/releases/download/16.5.6/frida-server-16.5.6-android-arm64.xz
+unxz frida-server-16.5.6-android-arm64.xz
+mv frida-server-16.5.6-android-arm64 frida-server
+chmod +x frida-server
+```
 
 Quick recon of embedded strings:
 
-`strings frida-server | grep -i 'frida-agent' strings frida-server | grep -i 're.frida.server'`
+```bash
+strings frida-server | grep -i 'frida-agent'
+strings frida-server | grep -i 're.frida.server'
+```
 
-## 2. Python patcher (frida → brida-bgent)
+### 2. Python patcher (frida → brida-bgent)
 
 ```python
 from pathlib import Path
 
 IN_PATH  = Path("frida-server")
-OUT_PATH = Path("brida-bgent-server")
+OUT_PATH = Path("brida-bgent-server")  # you can change this to whatever you want.
 
 REPLACEMENTS = {
-    *# Concrete agent .so names*
+    # Concrete agent .so names
     b"frida-agent-32.so":      b"brida-bgent-32.so",
     b"frida-agent-64.so":      b"brida-bgent-64.so",
     b"frida-agent-arm.so":     b"brida-bgent-arm.so",
     b"frida-agent-arm64.so":   b"brida-bgent-arm64.so",
 
-    *# Generic template string*
+    # Generic template string
     b"frida-agent-<arch>.so":  b"brida-bgent-<arch>.so",
 
-    *# Container / helper names*
+    # Container / helper names
     b"frida-agent-container":  b"brida-bgent-container",
 
-    *# Raw agent libs*
+    # Raw agent libs
     b"libfrida-agent-raw.so":  b"libbrida-bgent-raw.so",
 
-    *# Directory name*
+    # Directory name
     b"re.frida.server":        b"re.brida.server",
 }
 
 data = IN_PATH.read_bytes()
 
 for orig, repl in REPLACEMENTS.items():
-    if len(orig) != len(repl):
-        raise ValueError(f"Length mismatch: {orig!r} vs {repl!r}")
+    if len(orig) = len(repl):
+        raise ValueError(f"Length mismatch: {origr} vs {replr}")
     count = data.count(orig)
     if count == 0:
-        print(f"[!] Pattern not found: {orig!r}")
+        print(f"[] Pattern not found: {origr}")
         continue
-    print(f"[+] Replacing {count} occurrence(s) of {orig!r} with {repl!r}")
+    print(f"[+] Replacing {count} occurrence(s) of {origr} with {replr}")
     data = data.replace(orig, repl)
 
 OUT_PATH.write_bytes(data)
 OUT_PATH.chmod(0o755)
-print(f"[+] Wrote patched server to {OUT_PATH}")`
-
+print(f"[+] Wrote patched server to {OUT_PATH}")
 ```
 
 Run:
 
-`python3 brida-patch.py`
+```bash
+python3 brida-patch.py
+```
 
-## 3. Verify patched artifacts
+### 3. Verify patched artifacts
 
-`strings brida-bgent-server | grep -i 'frida-agent' strings brida-bgent-server | grep -i 'brida-bgent' strings brida-bgent-server | grep -i 're.frida.server' strings brida-bgent-server | grep -i 're.brida.server'`
+```bash
+strings brida-bgent-server | grep -i 'frida-agent'
+strings brida-bgent-server | grep -i 'brida-bgent'
+strings brida-bgent-server | grep -i 're.frida.server'
+strings brida-bgent-server | grep -i 're.brida.server'
+```
 
 Expected: only the harmless error message still contains `frida-agent`, all real artifacts are `brida-bgent-*` and `re.brida.server`.
 
-## 4. Deploy on device
+### 4. Deploy on device
 
-`adb push brida-bgent-server /data/local/tmp/frida-server adb shell "chmod 755 /data/local/tmp/frida-server" adb shell "su -c /data/local/tmp/frida-server &"`
+```bash
+adb push brida-bgent-server /data/local/tmp/frida-server
+adb shell "chmod 755 /data/local/tmp/frida-server"
+adb shell "su -c /data/local/tmp/frida-server &"
+```
 
 Attach from PC as usual (same frida CLI / version). On target app:
 
-`bashadb shell "grep -i brida /proc/$(pidof <package>)/maps" adb shell "grep -i frida /proc/$(pidof <package>)/maps" adb shell "ls -R /data/local/tmp | grep -i brida"`
+```bash
+adb shell "grep -i brida /proc/$(pidof <package>)/maps"
+adb shell "grep -i frida /proc/$(pidof <package>)/maps"
+adb shell "ls -R /data/local/tmp | grep -i brida"
+```
 
+And this strategy worked like a charm.
 Now `/proc/pid/maps` and `/data/local/tmp` expose `brida-bgent-*.so` and `re.brida.server`, so naive Frida name-based detections on `frida-agent.so` / `re.frida.server` no longer fire.
+
+:::tip
+can you think of another way to bypass this ? :D
+:::
+
+## Some Questions that came to my mind
+
+**Q: Why use `/proc/self/maps`?**
+
+> A: This special file shows ALL memory regions mapped into the current process. It's provided by the Linux kernel and always shows what's really loaded, so, triying to remove such file will cause the app even the system to crash
+
+**Q: What strings does anti-frida look for?**
+
+> A: Common ones include:
+>
+> - `gadget` - frida-gadget.so
+> - `gum` - frida's Gum engine
+> - `agent` - frida-agent.so
+
+**Q: Why can't we just search by module and hook directly?**
+
+> A: Because `libantifrida.so` doesn't exist in memory when our script starts. It's loaded later by the app at runtime.
+
+**Q: Why Direct Syscall Hooking is Necessary?**
+
+> Normal hooking by function name **won't work** because `libantifrida.so` uses **direct syscalls**, bypassing `libc` entirely.
+
+**Q: Why not just hook by function name like `openat`, `read`, `close`?**
+
+> A: Because anti-frida code doesn't call libc functions. It uses direct `syscalls`.
+
+**Q: What's the difference?**
+
+Normal App
+
+```
+App code → libc.so (openat function) → kernel syscall
+              ↑
+         Frida can hook here
+```
+
+Anti-Frida Code
+
+```
+App code → SVC #0 instruction (direct syscall) → kernel
+              ↑
+         No function to hook Must hook the SVC instruction itself.
+```
 
 ---
 
-# Check 3: libc Checksum-Based Detection
+## Lessons Learned
+
+> Sometimes you can't just hook everything or fake/block every check—doing so will lead to crashes, timeouts, unintended behaviors, and an unstable runtime. Instead, it's often better to use a **workaround** and view the detection from the other side. This approach typically requires **less effort**, **less overthinking**, and yields **better results**.
+---
+
+## Credits & Resources
+
+This writeup is based on the work of **fatalSec**. The sample APK and solver scripts used in this guide are his creations—full credit goes to him.
+
+- **YouTube Tutorial**: [Advanced Frida Detection Bypass](https://www.youtube.com/watch?v=FNtzJDU5BAI)
+- **GitHub Repository**: [android_in_app_protections](https://github.com/fatalSec/android_in_app_protections)
+
+---
+
+<!-- # Check 3: libc Checksum-Based Detection
 
 > Technical Deep Dive: This is the most sophisticated detection method. It exploits the fact that Frida's Interceptor modifies executable code in memory—when you hook a function like connect(), Frida overwrites the first few instructions with a trampoline (typically LDR X16, #8; BR X16 followed by the hook address) that redirects execution to your handler. The detection works as follows: First, it parses /proc/self/maps to find libc.so entries with r-xp (read-execute) permissions—these are the executable code sections. It extracts the memory address range (e.g., 749098c000-7490abf000) and the file path (/system/lib64/libc.so). Then it performs two reads: (1) Memory read: directly read bytes from the mapped memory addresses, (2) Disk read: open the libc.so file using openat (syscall 56), use lseek (syscall 62) to navigate to the correct offset within the file (since the executable section isn't always at offset 0), then read (syscall 63) the same number of bytes. Finally, it computes checksums (MD5/CRC32) of both and compares them. If Frida has hooked any libc function, the memory bytes will differ from disk bytes, causing a mismatch. Our bypass is elegant: since this detection depends on parsing /proc/self/maps to find libc.so's address, we simply remove or rename libc.so entries in our fake maps file. When the detection code searches for "libc.so" in the redirected fake maps, it finds nothing—so it can't determine where libc is in memory, can't compute the checksum, and the check becomes a no-op. The detection code trusts /proc/self/maps to be accurate, and we exploit that trust.
 >
@@ -928,7 +638,7 @@ Frida hooks functions in `libc.so` by modifying the in-memory code (inserting ju
          ▼                     ▼                                 
    ┌──────────┐         ┌──────────┐                            
     No Frida              FRIDA                               
-                          DETECTED!                            
+                          DETECTED                            
    └──────────┘         └──────────┘                            
                                                                     
 └────────────────────────────────────────────────────────────────────┘
@@ -961,7 +671,7 @@ Frida hooks functions in `libc.so` by modifying the in-memory code (inserting ju
     ...           ...                  ...                     
    └─────────────────────────────────────────────────────────────┘ 
                                                                     
-   Frida replaced the first instructions with a TRAMPOLINE!         
+   Frida replaced the first instructions with a TRAMPOLINE         
    These different bytes cause checksum mismatch.                   
                                                                     
 └────────────────────────────────────────────────────────────────────┘
@@ -1007,22 +717,22 @@ console.log("\\nBacktrace:" + backtrace);
 }
 >
 >
-> A: This code **does NOT bypass** the checksum check! It only **LOGS** when [libc.so](http://libc.so/) is being accessed. The backtrace shows the call chain - used for debugging/analysis to understand how the check works.
+> A: This code **does NOT bypass** the checksum check It only **LOGS** when [libc.so](http://libc.so/) is being accessed. The backtrace shows the call chain - used for debugging/analysis to understand how the check works.
 >
 
 **Q: How did removing [libc.so](http://libc.so/) from maps bypass the checksum?**
 
-> A: The checksum code relies on /proc/self/maps to find libc.so! By removing or renaming libc.so entries in the fake maps file:
+> A: The checksum code relies on /proc/self/maps to find libc.so By removing or renaming libc.so entries in the fake maps file:
 >
 > - The code can't find where libc is in memory
 > - It can't get the file path to read from disk
-> - **The check effectively becomes a no-op!**
+> - **The check effectively becomes a no-op**
 
 ## The Bypass
 
 ### Strategy
 
-**Same fake maps file** used for Check 2, but also remove/rename `libc.so` entries!
+**Same fake maps file** used for Check 2, but also remove/rename `libc.so` entries
 
 ### Why This Works
 
@@ -1039,20 +749,20 @@ console.log("\\nBacktrace:" + backtrace);
     4. Read memory at 0x749098c000                                
     5. Compute checksum of memory contents                        
     6. Compare to disk checksum                                   
-    7. Frida modified memory → MISMATCH → DETECTED!               
+    7. Frida modified memory → MISMATCH → DETECTED               
    └─────────────────────────────────────────────────────────────┘ 
                                                                     
    WITH BYPASS (libc.so removed from fake maps):                    
    ┌─────────────────────────────────────────────────────────────┐ 
     1. Open /proc/self/maps → REDIRECTED to fake file            
-    2. Find line containing "libc.so" → NOT FOUND!               
+    2. Find line containing "libc.so" → NOT FOUND               
     3. Can't get address → Can't compute checksum                
     4. Check FAILS SILENTLY or SKIPS                             
-    5. NO DETECTION!                                            
+    5. NO DETECTION                                            
    └─────────────────────────────────────────────────────────────┘ 
                                                                     
    The checksum code TRUSTS /proc/self/maps to tell it where       
-   libc is. We LIE to it, and it never checks the real libc!       
+   libc is. We LIE to it, and it never checks the real libc       
                                                                     
 └────────────────────────────────────────────────────────────────────┘
 
@@ -1120,7 +830,7 @@ console.log("\\nBacktrace:" + backtrace);
 > | --- | --- | --- |
 > | `do_dlopen` starts | File path is known | ❌ Not mapped yet |
 > | Memory mapping | Library loaded to memory | ❌ Not initialized |
-> | `call_constructor` | Library's init code runs | **Perfect timing!** |
+> | `call_constructor` | Library's init code runs | **Perfect timing** |
 
 ## The Code Explained
 
@@ -1154,7 +864,7 @@ Interceptor.attach(do_dlopen, function(){
             if(lib_loaded == 0){
                 lib_loaded = 1;  // Only do this once
 
-                // NOW we can get the module info!
+                // NOW we can get the module info
                 var module = Process.findModuleByName("libantifrida.so");
                 console.log(`[+] libantifrida is loaded at ${module.base}`);
 
@@ -1187,175 +897,20 @@ Interceptor.attach(do_dlopen, function(){
       ▼                                                             
   App calls dlopen("libantifrida.so")                               
                                                                    
-      ├──► do_dlopen hook triggers ──► We know it's coming!        
+      ├──► do_dlopen hook triggers ──► We know it's coming        
                                                                    
       ▼                                                             
   Library mapped to memory                                          
                                                                    
-      ├──► call_constructor hook ──► NOW we hook syscalls!         
+      ├──► call_constructor hook ──► NOW we hook syscalls         
                                                                    
       ▼                                                             
-  Library's anti-frida checks run ──► But we already hooked them!  
+  Library's anti-frida checks run ──► But we already hooked them  
                                                                    
       ▼                                                             
-  Checks bypassed!                                                
+  Checks bypassed                                                
                                                                     
 └────────────────────────────────────────────────────────────────────┘
-
-```
-
----
-
-# Why Direct Syscall Hooking is Necessary
-
-## The Problem
-
-Normal hooking by function name **won't work** because `libantifrida.so` uses **direct syscalls**, bypassing libc entirely!
-
-## Questions & Answers
-
-**Q: Why not just hook by function name like `openat`, `read`, `close`?**
-
-> A: Because anti-frida code doesn't call libc functions! It uses direct syscalls.
->
-
-**Q: What's the difference?**
-
-### Normal App (hookable)
-
-```
-App code → libc.so (openat function) → kernel syscall
-              ↑
-         Frida can hook here!
-
-```
-
-### Anti-Frida Code (NOT hookable by name)
-
-```
-App code → SVC #0 instruction (direct syscall) → kernel
-              ↑
-         No function to hook! Must hook the SVC instruction itself.
-
-```
-
-### What the anti-frida code looks like
-
-```c
-// Normal way (Frida CAN hook this)
-int fd = openat(AT_FDCWD, "/proc/self/maps", O_RDONLY);
-
-// Anti-frida way (Frida CANNOT hook by name!)
-int fd;
-asm volatile(
-    "mov x8, #56\\\\n"        // syscall number for openat
-    "mov x0, %1\\\\n"         // dirfd argument
-    "mov x1, %2\\\\n"         // pathname argument
-    "mov x2, %3\\\\n"         // flags argument
-    "svc #0\\\\n"             // <-- Direct syscall instruction!
-    "mov %0, x0"           // return value
-    : "=r"(fd)
-    : "r"(AT_FDCWD), "r"("/proc/self/maps"), "r"(O_RDONLY)
-);
-
-```
-
-## The Solution: Hook SVC Instructions Directly
-
-### How syscallArray works
-
-```jsx
-const syscallArray = [
-    {"addr":3868, "name":"openat", "sysnum":56},
-    {"addr":4008, "name":"read",   "sysnum":63},
-    {"addr":4924, "name":"close",  "sysnum":57},
-    // ... more syscall locations
-];
-
-```
-
-| Field | Meaning |
-| --- | --- |
-| `addr` | Offset in [libantifrida.so](http://libantifrida.so/) where `SVC #0` is located |
-| `name` | Human-readable name (for us) |
-| `sysnum` | Linux syscall number (what the kernel does) |
-
-### Finding these addresses
-
-The addresses were found using **Radare2** to search for all syscall instructions:
-
-```bash
-r2 libantifrida.so
-[0x00000000]> /asj    # Search for all syscall instructions (JSON output)
-
-```
-
-### Visualization
-
-```
-┌────────────────────────────────────────────────────────────────────┐
-                    libantifrida.so in memory                        
-├────────────────────────────────────────────────────────────────────┤
-                                                                    
-  Base Address: 0x7500000000                                        
-                                                                    
-  Offset 0x0F1C (3868):                                             
-  ┌──────────────────────────────────────────────────────────────┐ 
-    mov x8, #56          ; syscall number = openat               
-    mov x0, #AT_FDCWD    ; dirfd                                 
-    mov x1, x19          ; pathname pointer                      
-    mov x2, #0           ; flags                                 
-    svc #0               ; ← WE HOOK HERE!                       
-  └──────────────────────────────────────────────────────────────┘ 
-                                                                    
-  Offset 0x0FA8 (4008):                                             
-  ┌──────────────────────────────────────────────────────────────┐ 
-    mov x8, #63          ; syscall number = read                 
-    mov x0, x20          ; fd                                    
-    mov x1, x21          ; buffer                                
-    mov x2, x22          ; count                                 
-    svc #0               ; ← WE HOOK HERE!                       
-  └──────────────────────────────────────────────────────────────┘ 
-                                                                    
-  ... more syscalls ...                                             
-                                                                    
-  Actual hook address = Base + Offset                               
-  Example: 0x7500000000 + 0x0F1C = 0x7500000F1C                     
-                                                                    
-└────────────────────────────────────────────────────────────────────┘
-
-```
-
-### The Code
-
-```jsx
-function hook_svc(base_addr){
-    var buff = "";
-
-    const syscallArray = [
-        {"addr":3868,"name":"openat","sysnum":56},
-        {"addr":4008,"name":"read","sysnum":63},
-        // ... more entries
-    ];
-
-    syscallArray.forEach(function(item) {
-        // Convert decimal offset to pointer
-        var addr = ptr('0x'+item.addr.toString(16));
-
-        // Hook at: base_addr + offset
-        Interceptor.attach(base_addr.add(addr), function(args){
-            switch(item.sysnum){
-                case 56:  // openat
-                    // Check and modify file paths
-                    break;
-                case 63:  // read
-                    // Monitor reads
-                    break;
-                // ... etc
-            }
-        });
-    });
-}
 
 ```
 
@@ -1389,6 +944,4 @@ function hook_svc(base_addr){
 7b6000000-7b6001000 r--p  xxxx-xxxx.so                                         
 ... normal entries ...
 
-```
-
----
+``` -->
