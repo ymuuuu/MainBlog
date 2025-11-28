@@ -17,7 +17,7 @@ FreePalestine
 
 # Introduction
 
-In this noob-friendly writeup, I will explain and share some of the **advanced Frida detection techniques** I have faced during my last pentest engagements. However, due to confidentiality of the apps, we will use an open-source app which I found very matching to some of these advanced bypasses I encountered.
+In this noob-friendly writeup, I will explain and share some of the **advanced Frida detection techniques** I have faced during my last pentest engagements. However, due to **confidentiality** of the apps, we will use an `open-source` app which I found very matching to some of these advanced bypasses I encountered.
 
 > **Sample APK**: [adv_frida_apk](https://github.com/fatalSec/android_in_app_protections/blob/main/adv_frida.apk)
 >
@@ -160,6 +160,10 @@ Anti-frida code often lives in the **Native Level** because:
 ## Technical Deep Dive
 
 >This detection exploits the fact that `frida-server` binds to **TCP port 27042** on localhost (`127.0.0.1`) by default. The detection code uses the `connect()` libc function—which internally triggers the `SYS_connect` syscall. On ARM64 Android, the anti-frida library calls `connect()` with a `sockaddr_in` structure containing `sin_family = AF_INET (2)`, `sin_addr = 127.0.0.1`, and `sin_port = 27042` in network byte order. Network byte order is big-endian, so port 27042 (hex `0x69A2`) becomes `0xA269` when the bytes are swapped. The detection reads the port from `sockaddr_in` at offset +2 bytes from the structure base (after the 2-byte `sin_family` field). If `connect()` returns 0 (success), it means something is listening on that port—likely Frida.
+
+:::note
+This is check is not that **advanced**, however, still a pain in the bass.
+:::
 
 ## How the detection works
 
