@@ -20,6 +20,8 @@ FreePalestine
 In this noob-friendly writeup, I will explain and share some of the **advanced Frida detection techniques** I have faced during my last pentest engagements. However, due to confidentiality of the apps, we will use an open-source app which I found very matching to some of these advanced bypasses I encountered.
 
 > **Sample APK**: [adv_frida_apk](https://github.com/fatalSec/android_in_app_protections/blob/main/adv_frida.apk)
+>
+> **Solver Frida Script**: [bypass_frida.js](https://github.com/fatalSec/android_in_app_protections/blob/main/bypass_frida.js)
 
 ---
 
@@ -558,12 +560,12 @@ App code → SVC #0 instruction (direct syscall) → kernel
 
 ---
 
-## Lessons Learned
+# Lessons Learned
 
 > Sometimes you can't just hook everything or fake/block every check—doing so will lead to crashes, timeouts, unintended behaviors, and an unstable runtime. Instead, it's often better to use a **workaround** and view the detection from the other side. This approach typically requires **less effort**, **less overthinking**, and yields **better results**.
 ---
 
-## Credits & Resources
+# Credits & Resources
 
 This writeup is based on the work of **fatalSec**. The sample APK and solver scripts used in this guide are his creations—full credit goes to him.
 
