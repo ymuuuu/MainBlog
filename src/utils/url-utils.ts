@@ -22,6 +22,12 @@ export function getCategoryUrl(category: string): string {
   return url(`/archive/category/${category}/`)
 }
 
+export function getCategoriesPageUrl(category: string): string {
+  if (category === i18n(i18nKey.uncategorized))
+    return url('/categories/uncategorized/')
+  return url(`/categories/${category}/`)
+}
+
 export function getDir(path: string): string {
   const lastSlashIndex = path.lastIndexOf('/')
   if (lastSlashIndex < 0) {

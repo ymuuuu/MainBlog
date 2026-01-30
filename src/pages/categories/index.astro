@@ -1,0 +1,38 @@
+---
+import MainGridLayout from '@layouts/MainGridLayout.astro'
+import { i18n } from '@i18n/translation'
+import I18nKey from '@i18n/i18nKey'
+import { getCategoryList } from '@utils/content-utils'
+import CategoryCard from '@components/CategoryCard.astro'
+
+const categories = await getCategoryList()
+
+// Category metadata - add descriptions and images for your categories here
+const categoryMeta: Record<string, { description?: string; image?: string }> = {
+  'Mobile': {
+    description: 'Android security research, reverse engineering, and CTF writeups',
+    image: '/path/to/android-cover.png'  // uncomment when you have an actual image
+  }
+}
+
+let delay = 0
+const interval = 50
+---
+
+<MainGridLayout title={i18n(I18nKey.categories)}>
+    <div class="transition flex flex-col rounded-[var(--radius-large)] bg-[var(--card-bg)] py-1 md:py-0 md:bg-transparent md:gap-4 mb-4">
+        {categories.map((category) => {
+            const meta = categoryMeta[category.name] || {}
+            return (
+                <CategoryCard
+                    name={category.name}
+                    count={category.count}
+                    description={meta.description}
+                    image={meta.image}
+                    class:list="onload-animation"
+                    style={`animation-delay: calc(var(--content-delay) + ${delay++ * interval}ms);`}
+                />
+            )
+        })}
+    </div>
+</MainGridLayout>

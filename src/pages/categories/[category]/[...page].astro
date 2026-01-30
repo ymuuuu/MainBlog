@@ -1,0 +1,78 @@
+---
+import type { GetStaticPaths } from 'astro'
+import MainGridLayout from '@layouts/MainGridLayout.astro'
+import PostPage from '@components/PostPage.astro'
+import Pagination from '@components/control/Pagination.astro'
+import { PAGE_SIZE } from '@constants/constants'
+import { getCategoryList, getSortedPosts, getSortedWriteups } from '@utils/content-utils'
+import { url } from '@utils/url-utils'
+import { i18n } from '@i18n/translation'
+import I18nKey from '@i18n/i18nKey'
+import { Icon } from 'astro-icon/components'
+
+export const getStaticPaths = (async ({ paginate }) => {
+    const categories = await getCategoryList()
+    
+    const allPosts = await getSortedPosts()
+    const allWriteups = await getSortedWriteups()
+    const allEntries = [...allPosts, ...allWriteups].sort((a, b) => {
+        const dateA = new Date(a.data.published)
+        const dateB = new Date(b.data.published)
+        return dateA > dateB ? -1 : 1
+    })
+    
+    const paths = []
+    
+    for (const category of categories) {
+        const categorySlug = category.name === i18n(I18nKey.uncategorized) ? 'uncategorized' : category.name
+        
+        const filteredPosts = allEntries.filter(post => {
+            if (category.name === i18n(I18nKey.uncategorized)) {
+                return !post.data.category || post.data.category === ''
+            }
+            return post.data.category === category.name
+        })
+        
+        const paginated = paginate(filteredPosts, { 
+            pageSize: PAGE_SIZE,
+            params: { category: categorySlug }
+        })
+        
+        paths.push(...paginated)
+    }
+    
+    return paths
+}) satisfies GetStaticPaths
+
+const { page } = Astro.props
+const { category } = Astro.params
+
+// Get the display name for the category
+const displayCategory = category === 'uncategorized' ? i18n(I18nKey.uncategorized) : category
+const len = page.data.length
+---
+
+<MainGridLayout title={`${i18n(I18nKey.categories)} - ${displayCategory}`}>
+    <div class="card-base px-8 py-6 mb-4 onload-animation">
+        <div class="flex items-center gap-4">
+            <a href={url('/categories/')} class="btn-plain rounded-lg p-2 hover:bg-[var(--btn-plain-bg-hover)] transition">
+                <Icon name="material-symbols:arrow-back-rounded" class="text-xl text-50" />
+            </a>
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-[var(--primary)] flex items-center justify-center">
+                    <Icon name="material-symbols:folder-rounded" class="text-xl text-white" />
+                </div>
+                <div>
+                    <div class="font-bold text-2xl text-90">{displayCategory}</div>
+                    <div class="text-sm text-50">{page.total} {page.total === 1 ? i18n(I18nKey.postCount) : i18n(I18nKey.postsCount)}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <PostPage page={page}></PostPage>
+    <Pagination 
+        class="mx-auto onload-animation" 
+        page={page} 
+        style={`animation-delay: calc(var(--content-delay) + ${len * 50}ms)`}
+    ></Pagination>
+</MainGridLayout>
