@@ -123,15 +123,17 @@ export async function getTagList(): Promise<Tag[]> {
 
 /**
  * Gets a list of categories and their counts from the "posts" and "writeups" collections.
+ * Uses getSortedEntries to ensure category inheritance from parent posts is applied.
  */
 export async function getCategoryList(): Promise<Category[]> {
-  const blogPosts = await getCollection('posts', ({ data }) => {
-    return import.meta.env.PROD ? data.draft !== true : true
-  })
-
-  const writeups = await getCollection('writeups', ({ data }) => {
-    return import.meta.env.PROD ? data.draft !== true : true
-  })
+  const blogPosts = await getSortedEntries('posts')
+  
+  let writeups: { body: string; data: BlogPostData; slug: string; collection: 'posts' | 'writeups' }[] = []
+  try {
+    writeups = await getSortedEntries('writeups')
+  } catch {
+    // writeups collection may not exist
+  }
 
   const allPosts = [...blogPosts, ...writeups]
 
