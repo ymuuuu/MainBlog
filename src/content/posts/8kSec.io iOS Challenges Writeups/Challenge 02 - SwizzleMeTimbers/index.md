@@ -3,7 +3,7 @@ title: "Challenge 02: SwizzleMeTimbers"
 published: 2025-11-15
 description: "A pirate-themed iOS app with a secret buried deep inside its view controller. A simple button reads “Unlock Treasure”, but it’s protected by a method that always returns false"
 image: "https://lwfiles.mycourse.app/66c35021da1fe6df974b8aee-public/dfbf4fa3b4965aa2640566b2fddd7064.png"
-category: "Mobile"
+
 tags: ["ios", "frida", "swift", "hook", "static-analysis", "mobile-exploitation", "reverse-engineering", "runtime"]
 series:
     id: "8ksec-ios-challenges"

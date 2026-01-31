@@ -4,7 +4,7 @@ published: 2024-12-17
 description: "Android Emulator Setup for Windows Without Android Studio IDE."
 tags: ["android", "emulator", "pentest","cybersecurity"]
 image: AndroidEmulatorDesgin.webp
-category: Notes
+category: Android
 draft: false
 ---
 

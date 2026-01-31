@@ -3,7 +3,6 @@ title: "Challenge 03: AndroDialer"
 published: 2025-09-22
 description: "Android Deep Link Vulnerability Analysis with hardcoded authentication tokens."
 image: "https://lwfiles.mycourse.app/66c35021da1fe6df974b8aee-public/42e3aa7f390f8662c067b48de036761c.png"
-category: "Mobile"
 tags: ["android", "8ksec.io", "mobile-exploitation", "deep-links", "vulnerability"]
 series:
   id: "8ksec-android-challenges"

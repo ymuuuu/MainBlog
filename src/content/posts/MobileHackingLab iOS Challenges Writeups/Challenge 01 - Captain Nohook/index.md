@@ -3,7 +3,6 @@ title: "Challenge 01: Captain Nohook"
 published: 2025-09-08
 description: "Bypassing iOS anti-debug/anti-hook checks and dumping the flag from memory using Frida."
 image: "https://lwfiles.mycourse.app/63942c32c9a203516ce07c09-public/c51e2ae8e938b64c62304bd7ca5f9402.png"
-category: "Mobile"
 tags: ["ios", "frida", "swift", "anti-debug", "anti-hook", "reverse-engineering", "mobile-exploitation"]
 series:
     id: "mhl-ios-challenges"

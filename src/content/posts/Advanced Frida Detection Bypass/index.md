@@ -3,7 +3,7 @@ title: "Advanced Frida Detection Bypass"
 published: 2025-11-28
 description: "A comprehensive guide to bypassing advanced Frida detection mechanisms in Android apps, including port detection, memory maps artifact scanning, and direct syscall hooking techniques."
 tags: ["android", "mobile", "frida", "reverse-engineering", "anti-frida", "bypass", "native", "hooking", "security"]
-category: "Mobile"
+category: "Android"
 image: "./Gemini_Generated_Image_a931q3a931q3a931.png"
 ---
 

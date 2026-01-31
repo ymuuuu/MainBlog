@@ -3,7 +3,7 @@ title: "MobileHackingLabs iOS Challenges"
 published: 2025-10-22
 description: "A n00bie's journey through iOS application exploitation challenges covering reverse engineering, vulnerability discovery, and mobile security."
 tags: ["ios", "mobile", "reverse-engineering","exploitation"]
-category: "Mobile"
+category: "iOS"
 image: "https://lwfiles.mycourse.app/63942c32c9a203516ce07c09-public/3e2bf19a0266ca323d8dd5aade5101f4.png"
 series:
   id: "mhl-ios-challenges"

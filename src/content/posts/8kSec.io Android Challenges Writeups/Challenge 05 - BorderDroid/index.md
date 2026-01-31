@@ -3,7 +3,6 @@ title: "Challenge 05: BorderDroid"
 published: 2025-10-07
 description: "Android Kiosk Mode Bypass: Multiple Attack Vectors Against PIN-Protected Lock Screen with HTTP endpoint exploitation and broadcast receiver vulnerabilities."
 image: "https://lwfiles.mycourse.app/66c35021da1fe6df974b8aee-public/42e3aa7f390f8662c067b48de036761c.png"
-category: "Mobile"
 tags: ["android", "8ksec.io", "mobile-exploitation", "kiosk-mode", "broadcast-receiver", "http-security"]
 series:
   id: "8ksec-android-challenges"

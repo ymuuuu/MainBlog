@@ -3,7 +3,6 @@ title: "Challenge 02: No Escape"
 published: 2025-09-09
 description: "Bypassing custom Swift jailbreak detection by reverse engineering and hooking with Frida."
 image: "https://lwfiles.mycourse.app/63942c32c9a203516ce07c09-public/89a0440e2116bc24f8fc249451af3bbe.png"
-category: "Mobile"
 tags: ["ios", "frida", "swift", "jailbreak-detection", "reverse-engineering", "mobile-exploitation"]
 series:
   id: "mhl-ios-challenges"

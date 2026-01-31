@@ -3,7 +3,6 @@ title: "Challenge 05: TrustFall"
 published: 2025-11-18
 description: "A walkthrough on reverse engineering an iOS app to bypass deep link sanitization checks. It demonstrates using static analysis to identify logic flaws and exploiting URL parsing inconsistencies to defeat domain restrictions."
 image: "https://lwfiles.mycourse.app/66c35021da1fe6df974b8aee-public/c952f98b7626546f4d01a298e0263d37.png"
-category: "Mobile"
 tags: ["ios", "ctf", "swift", "ghidra", "reverse-engineering", "static-analysis", "url-scheme", "deeplink", "logic-bug", "url-parsing"]
 series:
     id: "8ksec-ios-challenges"

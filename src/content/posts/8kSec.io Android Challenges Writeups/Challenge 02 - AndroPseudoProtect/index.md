@@ -3,7 +3,6 @@ title: "Challenge 02: AndroPseudoProtect"
 published: 2025-09-15
 description: "Exploiting IPC broadcast vulnerabilities to extract security tokens and bypass file encryption protection."
 image: "https://lwfiles.mycourse.app/66c35021da1fe6df974b8aee-public/42e3aa7f390f8662c067b48de036761c.png"
-category: "Mobile"
 tags: ["android","8ksec.io", "mobile-exploitation", "ipc", "broadcast-receiver", "token-extraction", "file-encryption"]
 series:
   id: "8ksec-android-challenges"

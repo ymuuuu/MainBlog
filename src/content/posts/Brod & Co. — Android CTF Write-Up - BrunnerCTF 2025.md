@@ -13,7 +13,7 @@ tags:
     "writeup",
     "smali",
   ]
-category: Writeups
+category: CTF
 lang: "en"
 draft: false
 ---
@@ -21,11 +21,10 @@ draft: false
 # ( بِسْمِ اللَّـهِ الرَّحْمَـٰنِ الرَّحِيمِ )
 
 :::caution
-#FreePalestine
+# FreePalestine
 :::
 
 # Brod & Co. — Android CTF Write-Up - BrunnerCTF 2025
-
 
 ---
 

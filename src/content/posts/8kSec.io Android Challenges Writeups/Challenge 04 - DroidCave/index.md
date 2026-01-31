@@ -3,7 +3,6 @@ title: "Challenge 04: DroidCave"
 published: 2025-09-26
 description: "Android Content Provider SQL Injection Vulnerability Analysis with unprotected database access."
 image: "https://lwfiles.mycourse.app/66c35021da1fe6df974b8aee-public/42e3aa7f390f8662c067b48de036761c.png"
-category: "Mobile"
 tags: ["android", "8ksec.io", "mobile-exploitation", "content-provider", "sql-injection"]
 series:
   id: "8ksec-android-challenges"

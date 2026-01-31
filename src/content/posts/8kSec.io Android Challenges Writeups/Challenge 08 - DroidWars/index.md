@@ -3,7 +3,6 @@ title: "Challenge 08: DroidWars"
 published: 2025-11-02
 description: "Arbitrary code execution via unsafe dynamic plugin loading from /sdcard using DexClassLoader; PoC shows static initializer RCE and in-app evidence verification."
 image: "https://lwfiles.mycourse.app/66c35021da1fe6df974b8aee-public/42e3aa7f390f8662c067b48de036761c.png"
-category: "Mobile"
 tags: ["android", "8ksec.io", "mobile-exploitation", "dex", "dexclassloader", "plugin", "rce", "dynamic-loading"]
 series:
    id: "8ksec-android-challenges"

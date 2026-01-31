@@ -13,7 +13,7 @@ tags:
     "writeup",
     "smali",
   ]
-category: Writeups
+category: CTF
 lang: "en"
 draft: false
 ---
@@ -21,7 +21,9 @@ draft: false
 # ( بِسْمِ اللَّـهِ الرَّحْمَـٰنِ الرَّحِيمِ )
 
 :::caution
-#FreePalestine
+
+# FreePalestine
+
 :::
 
 :::note
@@ -303,9 +305,11 @@ Java.perform(function () {
 
 1. **Setup**: Install Frida and connect to your Android device/emulator
 2. **Deploy**: Run the script while starting the Myth app:
+
    ```bash
    frida -U -l solver.js -f asc.wargames.myth
    ```
+
 3. **Activate**: Tap the "Unlock the Myth" button in the app
 4. **Victory**: After running our exploit, the flag is displayed in the frida console!
 

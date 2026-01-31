@@ -6,6 +6,7 @@ import { i18n } from '@i18n/translation'
 /**
  * Fetches and sorts entries from a specified collection by published date (newest first).
  * Also sets `nextSlug`, `nextTitle`, `prevSlug`, and `prevTitle` for navigation.
+ * Child posts in a series will inherit the category from their parent post if not explicitly set.
  */
 export async function getSortedEntries(
   collectionName: 'posts' | 'writeups',
@@ -19,6 +20,25 @@ export async function getSortedEntries(
     ...entry,
     collection: collectionName,
   }))
+
+  // Build a map of series ID to parent category for inheritance
+  const seriesParentCategory: { [seriesId: string]: string } = {}
+  for (const entry of entriesWithCollection) {
+    if (entry.data.series?.parent === true && entry.data.series?.id && entry.data.category) {
+      seriesParentCategory[entry.data.series.id] = entry.data.category
+    }
+  }
+
+  // Inherit category from parent for child posts in a series
+  for (const entry of entriesWithCollection) {
+    if (entry.data.series?.id && entry.data.series?.parent !== true) {
+      const parentCategory = seriesParentCategory[entry.data.series.id]
+      if (parentCategory && !entry.data.category) {
+        // Only inherit if child doesn't have its own category
+        entry.data.category = parentCategory
+      }
+    }
+  }
 
   // Sort entries by published date (newest first)
   const sorted = entriesWithCollection.sort((a, b) => {

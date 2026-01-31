@@ -4,17 +4,20 @@ published: 2025-02-03
 description: "This writeup details the steps taken to solve Hextree.io Intent Attack Surface APK"
 image: "Hextree.io Intent Attack Writeup Part 1.webp"
 tags: ["android", "pentest","cybersecurity","hextree.io","writeup","APK"]
-category: Writeups
+category: Android
 lang: "en,ar"
 draft: false
 ---
 # ( بِسْمِ اللَّـهِ الرَّحْمَـٰنِ الرَّحِيمِ )
+
 :::caution
  #FreePalastine
 :::
+
 # Introduction
+
 In this noob writeup we will explore the world of activities and intents, we will solve 7 challenges with 7 different flags and 7 different topics. We will be focusing on activities from Flag1 to Flag7. Enjoy!
-:::warning 
+:::warning
 I am a noob android guy, if you find any mistake pls ignore, or maybe report it?  
 :::
 
@@ -36,7 +39,7 @@ So to start an activity, you need to create an **intent**.
 
 The primary attack surface in this context is the `getIntent()` method. This feature is used to pass data to other apps, making it a major attack surface for potential vulnerabilities.
 
-with that being said, lets start! 
+with that being said, lets start!
 
 ---
 
@@ -241,7 +244,8 @@ public enum State {
 }
 
 ```
-:::important 
+
+:::important
 Only Engineers will get it (kidding)
 :::
 The first thing that came to my mind when I saw this was **state machines**. If you’re familiar with state machines, you’ll know they define a flow that determines the current state, the next state, and the actions associated with each state.
@@ -416,6 +420,7 @@ public class MainActivity extends AppCompatActivity {
     }
 }
 ```
+
 :::note
 this is only more illustration for noob guys like me, if you already got it then skip.
 :::
@@ -423,17 +428,16 @@ this is only more illustration for noob guys like me, if you already got it then
 Still confused? Here’s how I managed to understand it:
 
 - In the target app, `intent2` is extracted from `intent1` like this:
-    
+
     ```java
     Intent intent2 = (Intent) intent.getParcelableExtra("android.intent.extra.INTENT");
     ```
-    
+
 - To reverse this in the POC app, we **put** `intent2` inside `intent1`:
-    
+
     ```java
     intent1.putExtra("android.intent.extra.INTENT", intent2);
     ```
-    
 
 I hope this makes it clearer when writing your POC app.
 
@@ -482,8 +486,8 @@ protected void onCreate(Bundle bundle) {
 
 As you can see, it’s a simple activity that waits for the `FLAG_GRANT_READ_URI_PERMISSION` flag to call the `success()` method. This means we can reuse the POC app from **Flag5Activity** with a slight modification to achieve our goal.
 
-This is called Intent Redirection, I recommend reading this blog by Anas 
-https://medium.com/@0x3adly/android-intent-redirection-a-hackers-gateway-to-internal-components-ebe126bbb2e0
+This is called Intent Redirection, I recommend reading this blog by Anas
+<https://medium.com/@0x3adly/android-intent-redirection-a-hackers-gateway-to-internal-components-ebe126bbb2e0>
 
 Here’s the updated POC app:
 
@@ -604,14 +608,14 @@ adb shell am start -n io.hextree.attacksurface/.activities.Flag7Activity -a REOP
 
 ```
 
-### How It Works:
+### How It Works
 
 With `FLAG_ACTIVITY_SINGLE_TOP`:
 
 - The existing instance of `Flag7Activity` is reused.
 - The `onNewIntent` method is called, which handles the `"REOPEN"` action and triggers `success(this)`.
 
-### Workflow:
+### Workflow
 
 1. **First Launch (`OPEN` action)**:
     - `onCreate` is called.
@@ -631,10 +635,10 @@ With `FLAG_ACTIVITY_SINGLE_TOP`:
 # Conclusion
 
 So this is it for Part1, we managed to get the first 7 flag for the apk, which was all for the activity part. We will continue digging more in upcoming parts inshalah.
-:::tip 
+:::tip
 I left some references in the end which I find super usefull, some were already mentioned above, make sure to check them all!
 :::
-:::important 
+:::important
 If anyone has any question or an inquire or even want to contribute, feel free to hit me on any of social, I would love to discuss!
 :::
 
@@ -643,6 +647,7 @@ If anyone has any question or an inquire or even want to contribute, feel free t
 # References
 
 **OFCOURSE HEXTREE.IO**
+
 1. **Android Activity Lifecycle**  
    [https://medium.com/@ranjeet123/android-activity-lifecycle-in-detail-eaf2931a1b37](https://medium.com/@ranjeet123/android-activity-lifecycle-in-detail-eaf2931a1b37)
 

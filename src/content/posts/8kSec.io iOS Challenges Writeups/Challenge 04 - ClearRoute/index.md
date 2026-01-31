@@ -3,7 +3,6 @@ title: "Challenge 04: ClearRoute"
 published: 2025-11-17
 description: "A walkthrough on bypassing client-side anti-analysis checks in a Swift iOS app. This writeup covers how to defeat a common proxy-detection mechanism using Frida to hook and manipulate the runtime, allowing for successful network interception."
 image: "https://lwfiles.mycourse.app/66c35021da1fe6df974b8aee-public/c8c1413a7b583240fa0e7713ff76a8e9.png"
-category: "Mobile"
 tags: ["ios", "frida", "swift", "hook", "static-analysis", "ghidra", "reverse-engineering", "runtime", "proxy-detection", "dylib"]
 series:
     id: "8ksec-ios-challenges"
